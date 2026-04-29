@@ -30,3 +30,9 @@ Luego abre `http://localhost:3000`.
 ## Documentacion del proyecto
 
 La planeacion completa vive en [`PLAN.md`](./PLAN.md).
+
+Documentos de trabajo:
+
+- [`docs/PROJECT_MANAGEMENT.md`](./docs/PROJECT_MANAGEMENT.md): SCRUM, sprints, Definition of Ready y Definition of Done.
+- [`docs/JIRA_BACKLOG.md`](./docs/JIRA_BACKLOG.md): backlog inicial listo para convertirse en issues de Jira.
+- [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md): direccion visual, componentes y buenas practicas de estilos.
