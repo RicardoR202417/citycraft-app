@@ -1,0 +1,146 @@
+.page {
+  min-height: 100vh;
+  padding: 48px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
+  gap: 32px;
+  align-items: stretch;
+  max-width: 1180px;
+  margin: 0 auto 32px;
+}
+
+.heroText {
+  display: flex;
+  min-height: 420px;
+  flex-direction: column;
+  justify-content: flex-end;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(145deg, rgba(31, 122, 90, 0.88), rgba(22, 79, 62, 0.94)),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+  background-size: auto, 44px 44px, 44px 44px;
+  color: #fff8eb;
+  padding: 42px;
+  box-shadow: var(--shadow);
+}
+
+.kicker {
+  margin: 0 0 12px;
+  color: #f2cd8b;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.heroText h1 {
+  max-width: 780px;
+  margin: 0;
+  font-size: clamp(3rem, 8vw, 7rem);
+  line-height: 0.9;
+}
+
+.heroText p:last-child {
+  max-width: 720px;
+  margin: 24px 0 0;
+  color: rgba(255, 248, 235, 0.86);
+  font-size: 1.18rem;
+  line-height: 1.65;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+
+.panel span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.panel strong {
+  margin-top: 10px;
+  color: var(--accent-strong);
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.panel p {
+  margin: 18px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.card {
+  min-height: 148px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 20px;
+}
+
+.card h2 {
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: 1rem;
+}
+
+.card p {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: 24px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .heroText {
+    min-height: 360px;
+    padding: 28px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .page {
+    padding: 16px;
+  }
+
+  .heroText h1 {
+    font-size: 3rem;
+  }
+
+  .heroText p:last-child {
+    font-size: 1rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

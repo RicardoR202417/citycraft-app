@@ -1,0 +1,27 @@
+{
+  "name": "citycraft-app",
+  "version": "0.1.0",
+  "private": false,
+  "license": "MIT",
+  "description": "Open source platform for a Minecraft Bedrock Realm city economy, property registry, marketplace, and public forum.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "lucide-react": "^0.468.0",
+    "next": "^16.0.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "eslint": "^9.18.0",
+    "eslint-config-next": "^16.0.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
