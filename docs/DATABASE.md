@@ -76,6 +76,33 @@ Las politicas iniciales son deliberadamente conservadoras:
 - `ledger_entries` y `audit_logs` son de solo lectura desde cliente.
 - Movimientos economicos futuros deben pasar por funciones SQL/RPC atomicas.
 
+## Administrador global
+
+Archivo:
+
+```text
+supabase/migrations/20260430120000_global_admin_foundation.sql
+```
+
+Incluye:
+
+- Tabla `global_admins` para registrar el unico administrador global activo.
+- Indice unico `global_admins_single_active` para impedir mas de un admin
+  activo al mismo tiempo.
+- Funcion `is_global_admin(profile_id uuid default auth.uid())` como fuente
+  segura de autorizacion desde RLS y backend.
+- Politicas RLS para que el administrador global pueda leer o gestionar las
+  tablas base existentes segun su naturaleza.
+
+Reglas:
+
+- El administrador global es distinto del gobierno.
+- El gobierno administra reglas internas del mundo.
+- El administrador global administra la plataforma completa.
+- El alta o rotacion del administrador global debe hacerse con una operacion
+  controlada de servidor o SQL usando credenciales seguras.
+- El `service_role` nunca debe exponerse al navegador.
+
 ## Modelo `profiles`
 
 La tabla `profiles` guarda la identidad privada del jugador y esta vinculada a
