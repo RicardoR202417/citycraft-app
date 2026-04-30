@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireGovernmentProfile } from "../../../lib/auth";
+import { formatMoney } from "../../../lib/economy";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 
 const DEFAULT_STATE = {
@@ -357,7 +358,7 @@ export async function recordAttendance(_previousState = DEFAULT_STATE, formData)
   }
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.rpc("record_attendance", {
+  const { data, error } = await supabase.rpc("record_attendance_and_daily_payout", {
     p_attendance_date: attendanceDate,
     p_minutes_played: minutesPlayed,
     p_notes: notes || null,
@@ -375,6 +376,6 @@ export async function recordAttendance(_previousState = DEFAULT_STATE, formData)
 
   return {
     error: "",
-    message: "Asistencia registrada. El pago se conectara en la siguiente historia."
+    message: `Asistencia registrada. Pago diario directo: ${formatMoney(data?.payout_amount || 0)}.`
   };
 }

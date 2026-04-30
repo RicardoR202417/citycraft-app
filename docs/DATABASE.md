@@ -170,8 +170,7 @@ Las siguientes tablas se agregaran por Epic/historia, no todas desde el inicio:
   - `property_owners` listo en `20260430090000_property_registry.sql`.
   - `property_valuations` listo en `20260430090000_property_registry.sql`.
 - Economia:
-  - `daily_payouts`
-  - RPC de pago diario
+  - Pago proporcional a organizaciones por socios asistentes
 - Mercado:
   - `market_listings`
   - `offers`
@@ -281,9 +280,39 @@ Reglas:
   tiempo del Realm.
 - Una asistencia valida requiere minimo 30 minutos y maximo 1440.
 - Solo puede existir una asistencia por jugador y fecha real.
-- `record_attendance` todavia no genera pago; el pago se conecta mediante una
-  RPC atomica posterior para mantener el sprint incremental.
+- `record_attendance` queda como base de bajo nivel; la UI de gobierno usa
+  `record_attendance_and_daily_payout` para generar asistencia y pago directo
+  en una sola transaccion.
 - Cada asistencia genera un evento `attendance.recorded` en `audit_logs`.
+
+## Pagos diarios
+
+Archivo:
+
+```text
+supabase/migrations/20260430170000_daily_payout_rpc.sql
+```
+
+Incluye:
+
+- Tabla `daily_payouts`.
+- Politicas RLS para lectura del jugador y administracion de gobierno.
+- RPC `record_attendance_and_daily_payout`.
+
+Reglas:
+
+- El pago diario directo se genera al marcar asistencia desde gobierno.
+- La RPC registra asistencia, calcula pago, crea `daily_payouts`, actualiza la
+  wallet, inserta `ledger_entries` y audita `daily_payout.created` en una sola
+  transaccion.
+- Si cualquier paso falla, nada se persiste.
+- El rendimiento inicial directo usa el valor vigente de propiedades activas
+  donde el jugador sea propietario directo:
+  `sum(valor_propiedad * porcentaje_jugador) * 0.001`.
+- Si el jugador no tiene valor inmobiliario directo, la asistencia se registra
+  y el pago queda en `0`, sin entrada de ledger.
+- La version inicial no incluye pago proporcional a organizaciones; eso queda
+  para una historia posterior.
 
 ## Registro inmobiliario base
 

@@ -48,8 +48,8 @@ export function AttendanceForm({ profiles }) {
       </label>
 
       <p className={styles.hint}>
-        Una asistencia valida requiere al menos 30 minutos conectados. Por ahora este registro no paga automaticamente;
-        el pago diario queda conectado en la siguiente historia del sprint.
+        Una asistencia valida requiere al menos 30 minutos conectados. Al guardar, el sistema registra la asistencia y
+        genera el pago diario directo del jugador en una sola transaccion.
       </p>
 
       {state.error ? <p className={styles.error}>{state.error}</p> : null}
