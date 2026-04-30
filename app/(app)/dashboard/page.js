@@ -1,6 +1,6 @@
-import { Building2, LandPlot, Landmark, LogOut, MapPinned, UserRoundPen, WalletCards } from "lucide-react";
+import { Building2, LandPlot, Landmark, LogOut, MapPinned, ShieldCheck, UserRoundPen, WalletCards } from "lucide-react";
 import { Badge, Button, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader } from "../../../components/ui";
-import { getProfileVisibility, isGovernmentMember, requireProfile } from "../../../lib/auth";
+import { getProfileVisibility, isGlobalAdmin, isGovernmentMember, requireProfile } from "../../../lib/auth";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { signOut } from "./actions";
 import styles from "./page.module.css";
@@ -27,6 +27,7 @@ export default async function DashboardPage() {
     .eq("is_active", true);
 
   const hasGovernmentAccess = await isGovernmentMember(supabase, profile.id);
+  const hasAdminAccess = await isGlobalAdmin(supabase, profile.id);
 
   const profileItems = [
     { label: "Gamertag", value: profile.gamertag },
@@ -40,6 +41,11 @@ export default async function DashboardPage() {
       <PageHeader
         actions={
           <>
+            {hasAdminAccess ? (
+              <LinkButton href="/admin" icon={ShieldCheck} variant="secondary">
+                Admin
+              </LinkButton>
+            ) : null}
             {hasGovernmentAccess ? (
               <LinkButton href="/government" icon={Landmark} variant="secondary">
                 Gobierno
