@@ -4,6 +4,7 @@ import { LogIn, UserPlus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "../../components/ui";
+import { normalizeRedirectPath } from "../../lib/auth/routes";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import styles from "./LoginForm.module.css";
 
@@ -15,10 +16,14 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [gamertag, setGamertag] = useState("");
   const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(
+    searchParams.get("error") === "auth_callback"
+      ? "No se pudo completar la autenticacion. Intenta iniciar sesion nuevamente."
+      : ""
+  );
   const [isLoading, setIsLoading] = useState(false);
 
-  const nextPath = searchParams.get("next") || "/dashboard";
+  const nextPath = normalizeRedirectPath(searchParams.get("next"));
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -27,21 +32,29 @@ export function LoginForm() {
     setIsLoading(true);
 
     const supabase = getSupabaseBrowserClient();
+    const cleanEmail = email.trim();
+    const cleanGamertag = gamertag.trim();
+
+    if (mode === "sign-up" && cleanGamertag.length < 2) {
+      setError("El gamertag debe tener al menos 2 caracteres.");
+      setIsLoading(false);
+      return;
+    }
 
     const result =
       mode === "sign-up"
         ? await supabase.auth.signUp({
-            email,
+            email: cleanEmail,
             password,
             options: {
               data: {
-                gamertag
+                gamertag: cleanGamertag
               },
-              emailRedirectTo: `${window.location.origin}${nextPath}`
+              emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`
             }
           })
         : await supabase.auth.signInWithPassword({
-            email,
+            email: cleanEmail,
             password
           });
 

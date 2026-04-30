@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
-
-const protectedRoutes = ["/dashboard"];
+import { isProtectedRoute, normalizeRedirectPath } from "./lib/auth/routes";
 
 export async function proxy(request) {
   let response = NextResponse.next({
@@ -30,27 +29,32 @@ export async function proxy(request) {
     data: { user }
   } = await supabase.auth.getUser();
 
-  const isProtected = protectedRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  );
+  const isProtected = isProtectedRoute(request.nextUrl.pathname);
 
   if (isProtected && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("next", request.nextUrl.pathname);
+    loginUrl.searchParams.set(
+      "next",
+      normalizeRedirectPath(`${request.nextUrl.pathname}${request.nextUrl.search}`)
+    );
     return NextResponse.redirect(loginUrl);
   }
 
   if (request.nextUrl.pathname === "/login" && user) {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/dashboard";
-    dashboardUrl.search = "";
-    return NextResponse.redirect(dashboardUrl);
+    const nextPath = normalizeRedirectPath(request.nextUrl.searchParams.get("next"));
+    return NextResponse.redirect(new URL(nextPath, request.nextUrl.origin));
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"]
+  matcher: [
+    "/dashboard/:path*",
+    "/profile/:path*",
+    "/government/:path*",
+    "/admin/:path*",
+    "/login"
+  ]
 };
