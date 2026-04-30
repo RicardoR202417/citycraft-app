@@ -67,13 +67,35 @@ Incluye:
 
 Las politicas iniciales son deliberadamente conservadoras:
 
-- Visitantes pueden leer perfiles publicos y organizaciones publicas.
-- Cada jugador puede leer y actualizar su propio perfil.
+- Visitantes leen perfiles publicos mediante la vista limitada
+  `public_profiles`, no desde la tabla privada `profiles`.
+- Cada jugador puede leer y actualizar su propio perfil completo.
 - Cada jugador puede leer su wallet.
 - Miembros pueden leer wallets y datos de organizaciones a las que pertenecen.
 - El gobierno se modela como organizacion publica y transparente.
 - `ledger_entries` y `audit_logs` son de solo lectura desde cliente.
 - Movimientos economicos futuros deben pasar por funciones SQL/RPC atomicas.
+
+## Modelo `profiles`
+
+La tabla `profiles` guarda la identidad privada del jugador y esta vinculada a
+`auth.users`.
+
+Campos principales:
+
+- `id`: UUID del usuario autenticado.
+- `gamertag`: nombre visible dentro del Realm.
+- `gamertag_uid`: identificador unico del gamertag cuando este disponible.
+- `display_name`, `avatar_url`, `bio`: datos de presentacion.
+- `visibility_settings`: JSON con banderas de visibilidad publica.
+- `created_at`, `updated_at`: trazabilidad base.
+
+Las banderas heredadas `public_profile` y `public_wallet` se mantienen por
+compatibilidad inicial, pero la configuracion granular vive en
+`visibility_settings`.
+
+La vista `public_profiles` expone solo campos permitidos por las banderas de
+visibilidad. La tabla `profiles` completa solo es legible por el usuario dueno.
 
 ## Aplicar migraciones
 

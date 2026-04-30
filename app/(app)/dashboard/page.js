@@ -1,6 +1,6 @@
 import { Building2, LandPlot, LogOut, WalletCards } from "lucide-react";
 import { Badge, Button, Card, DataList, EmptyState, PageHeader, SectionHeader } from "../../../components/ui";
-import { requireProfile } from "../../../lib/auth";
+import { getProfileVisibility, requireProfile } from "../../../lib/auth";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { signOut } from "./actions";
 import styles from "./page.module.css";
@@ -11,6 +11,7 @@ export const metadata = {
 
 export default async function DashboardPage() {
   const profile = await requireProfile("/dashboard");
+  const visibility = getProfileVisibility(profile);
   const supabase = await createSupabaseServerClient();
 
   const { data: wallet } = await supabase
@@ -28,8 +29,8 @@ export default async function DashboardPage() {
   const profileItems = [
     { label: "Gamertag", value: profile.gamertag },
     { label: "Gamertag UID", value: profile.gamertag_uid || "Pendiente" },
-    { label: "Perfil publico", value: profile.public_profile ? "Visible" : "Privado" },
-    { label: "Billetera publica", value: profile.public_wallet ? "Visible" : "Privada" }
+    { label: "Perfil publico", value: visibility.profile ? "Visible" : "Privado" },
+    { label: "Billetera publica", value: visibility.wallet ? "Visible" : "Privada" }
   ];
 
   return (
