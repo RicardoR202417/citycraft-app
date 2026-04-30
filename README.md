@@ -27,6 +27,12 @@ npm run dev
 
 Luego abre `http://localhost:3000`.
 
+Rutas utiles durante la fundacion:
+
+- `http://localhost:3000/style-guide`: laboratorio visual.
+- `http://localhost:3000/login`: acceso y registro con Supabase Auth.
+- `http://localhost:3000/dashboard`: primera ruta privada protegida.
+
 ## Documentacion del proyecto
 
 La planeacion completa vive en [`PLAN.md`](./PLAN.md).
@@ -36,3 +42,5 @@ Documentos de trabajo:
 - [`docs/PROJECT_MANAGEMENT.md`](./docs/PROJECT_MANAGEMENT.md): SCRUM, sprints, Definition of Ready y Definition of Done.
 - [`docs/JIRA_BACKLOG.md`](./docs/JIRA_BACKLOG.md): backlog inicial listo para convertirse en issues de Jira.
 - [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md): direccion visual, componentes y buenas practicas de estilos.
+- [`docs/DATABASE.md`](./docs/DATABASE.md): Supabase, migraciones, RLS y reglas de seguridad.
+- [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md): flujo Git/Jira, ramas, PRs y convenciones de desarrollo.

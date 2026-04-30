@@ -1,0 +1,38 @@
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.header p {
+  margin: 0 0 8px;
+  color: var(--detail);
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.header h2 {
+  margin: 0;
+  font-family:
+    "Space Grotesk",
+    Inter,
+    "Segoe UI",
+    sans-serif;
+  font-size: 1.35rem;
+}
+
+.header span {
+  display: block;
+  max-width: 620px;
+  margin-top: 8px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+  .header {
+    display: block;
+  }
+}

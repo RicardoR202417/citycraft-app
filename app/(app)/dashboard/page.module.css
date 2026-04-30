@@ -1,0 +1,75 @@
+.page {
+  display: grid;
+  gap: 22px;
+  min-height: 100vh;
+  padding: var(--space-page);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 18px;
+}
+
+.card {
+  padding: clamp(18px, 3vw, 26px);
+}
+
+.card > * + * {
+  margin-top: 18px;
+}
+
+.balance {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  padding: 18px;
+}
+
+.balance svg {
+  color: var(--accent);
+}
+
+.balance strong {
+  color: var(--accent-strong);
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 1;
+}
+
+.balance span,
+.memberships span {
+  color: var(--muted);
+}
+
+.memberships {
+  display: grid;
+  gap: 10px;
+}
+
+.memberships article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  padding: 12px;
+}
+
+.memberships svg {
+  color: var(--accent);
+}
+
+.memberships strong,
+.memberships span {
+  display: block;
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

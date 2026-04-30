@@ -1,0 +1,38 @@
+.button {
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.primary {
+  background: var(--accent-strong);
+  color: #ffffff;
+}
+
+.secondary {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.secondary:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-subtle);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--foreground);
+}
+
+.ghost:hover {
+  background: var(--surface-subtle);
+}

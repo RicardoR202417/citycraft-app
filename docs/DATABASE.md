@@ -123,6 +123,20 @@ Las siguientes tablas se agregaran por Epic/historia, no todas desde el inicio:
 - Notificaciones:
   - `notifications`
 
+## Auth foundation
+
+La base de autenticacion ya incluye:
+
+- Cliente browser en `lib/supabase/browser.js`.
+- Cliente server con cookies en `lib/supabase/server.js`.
+- Proxy de Next.js para proteger `/dashboard`.
+- Helpers en `lib/auth`.
+- Ruta publica `/login`.
+- Ruta privada `/dashboard`.
+
+Supabase Auth usa email/password como primer proveedor. Mas adelante se puede
+agregar OAuth si el grupo lo necesita.
+
 ## Principio de seguridad
 
 El repositorio es publico. Por eso:
