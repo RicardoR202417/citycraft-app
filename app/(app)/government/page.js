@@ -4,6 +4,7 @@ import { requireGovernmentProfile } from "../../../lib/auth";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase/server";
 import { DistrictForm } from "./DistrictForm";
 import { PropertyForm } from "./PropertyForm";
+import { ValuationForm } from "./ValuationForm";
 import styles from "./page.module.css";
 
 export const metadata = {
@@ -40,6 +41,13 @@ function formatPropertyType(type) {
   return labels[type] || type;
 }
 
+function formatDate(value) {
+  return new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
+}
+
 export default async function GovernmentPage() {
   await requireGovernmentProfile("/government");
   const supabase = await createSupabaseServerClient();
@@ -55,6 +63,12 @@ export default async function GovernmentPage() {
   const { data: propertyRows = [] } = await supabase
     .from("properties")
     .select("id, name, address, type, size_blocks, current_value, districts(name)")
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const { data: valuations = [] } = await supabase
+    .from("property_valuations")
+    .select("id, value, reason, created_at, properties(id, name)")
     .order("created_at", { ascending: false })
     .limit(20);
 
@@ -103,6 +117,14 @@ export default async function GovernmentPage() {
     type: <Badge tone="info">{formatPropertyType(property.type)}</Badge>,
     size: Number(property.size_blocks).toLocaleString("es-MX"),
     value: formatMoney(property.current_value)
+  }));
+
+  const valuationRows = valuations.map((valuation) => ({
+    id: valuation.id,
+    property: valuation.properties?.name || "Propiedad no disponible",
+    value: formatMoney(valuation.value),
+    reason: valuation.reason,
+    createdAt: formatDate(valuation.created_at)
   }));
 
   return (
@@ -160,6 +182,15 @@ export default async function GovernmentPage() {
 
       <Card className={styles.card}>
         <SectionHeader
+          eyebrow="Valoracion"
+          title="Nueva valoracion"
+          description="Cada ajuste crea un registro historico y actualiza el valor vigente de la propiedad."
+        />
+        <ValuationForm properties={propertyRows} />
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
           eyebrow="Directorio"
           title="Delegaciones registradas"
           description="Listado administrativo con conteo de propiedades por zona."
@@ -207,6 +238,32 @@ export default async function GovernmentPage() {
             description="Cuando registres propiedades, apareceran aqui con su delegacion, tipo y valor actual."
             icon={Building2}
             title="Sin propiedades registradas"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Historial"
+          title="Valoraciones recientes"
+          description="Historial auditable de cambios de valor. Los registros no se editan; se agrega una nueva valoracion."
+        />
+        {valuations.length ? (
+          <Table
+            columns={[
+              { key: "property", label: "Propiedad" },
+              { key: "value", label: "Valor" },
+              { key: "reason", label: "Razon" },
+              { key: "createdAt", label: "Fecha" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={valuationRows}
+          />
+        ) : (
+          <EmptyState
+            description="Las propiedades nuevas ya generan una valoracion inicial; los cambios posteriores apareceran aqui."
+            icon={Landmark}
+            title="Sin valoraciones"
           />
         )}
       </Card>

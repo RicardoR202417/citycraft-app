@@ -246,3 +246,21 @@ La funcion `create_property_with_initial_owner` crea de forma atomica:
 La funcion solo puede ejecutarse por usuarios autenticados que pertenezcan a la
 organizacion tipo `government`. La UI de gobierno debe usar esta RPC en lugar de
 insertar directamente en varias tablas para evitar estados parciales.
+
+## RPC de nuevas valoraciones
+
+Archivo:
+
+```text
+supabase/migrations/20260430110000_record_property_valuation_rpc.sql
+```
+
+La funcion `record_property_valuation` permite al gobierno registrar una nueva
+valoracion para una propiedad. En la misma transaccion:
+
+- Actualiza `properties.current_value`.
+- Inserta una fila historica en `property_valuations`.
+- Agrega auditoria `property.valuation_recorded`.
+
+Las filas historicas no se editan desde la UI comun; cada ajuste de valor debe
+crear una nueva valoracion para mantener trazabilidad.

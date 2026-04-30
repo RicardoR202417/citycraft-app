@@ -59,6 +59,26 @@ function friendlyPropertyError(error) {
   return "No se pudo registrar la propiedad. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlyValuationError(error) {
+  if (!error?.message) {
+    return "No se pudo registrar la valoracion. Intenta nuevamente.";
+  }
+
+  if (error.code === "23503") {
+    return "La propiedad seleccionada no existe.";
+  }
+
+  if (error.code === "23514") {
+    return "Revisa valor y razon antes de guardar.";
+  }
+
+  if (error.code === "42501") {
+    return "Solo el gobierno puede registrar valoraciones.";
+  }
+
+  return "No se pudo registrar la valoracion. Revisa los datos e intenta nuevamente.";
+}
+
 export async function createDistrict(_previousState = DEFAULT_STATE, formData) {
   const profile = await requireGovernmentProfile("/government");
   const name = getField(formData, "name");
@@ -233,5 +253,55 @@ export async function createProperty(_previousState = DEFAULT_STATE, formData) {
   return {
     error: "",
     message: "Propiedad registrada con propietario y valoracion inicial."
+  };
+}
+
+export async function recordPropertyValuation(_previousState = DEFAULT_STATE, formData) {
+  await requireGovernmentProfile("/government");
+  const propertyId = getField(formData, "property_id");
+  const value = Number(getField(formData, "value"));
+  const reason = getField(formData, "reason");
+
+  if (!propertyId) {
+    return {
+      error: "Selecciona una propiedad.",
+      message: ""
+    };
+  }
+
+  if (!Number.isFinite(value) || value < 0) {
+    return {
+      error: "El nuevo valor no puede ser negativo.",
+      message: ""
+    };
+  }
+
+  if (reason.length < 3 || reason.length > 240) {
+    return {
+      error: "La razon debe tener entre 3 y 240 caracteres.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("record_property_valuation", {
+    p_metadata: {},
+    p_property_id: propertyId,
+    p_reason: reason,
+    p_value: value
+  });
+
+  if (error) {
+    return {
+      error: friendlyValuationError(error),
+      message: ""
+    };
+  }
+
+  revalidatePath("/government");
+
+  return {
+    error: "",
+    message: "Valoracion registrada."
   };
 }
