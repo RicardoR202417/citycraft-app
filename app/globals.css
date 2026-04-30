@@ -1,14 +1,42 @@
 :root {
-  --background: #f4f1e8;
-  --foreground: #17201a;
-  --muted: #5c675c;
+  color-scheme: light;
+  --background: #f2f4ef;
+  --foreground: #171c18;
+  --muted: #5f695f;
   --surface: #ffffff;
-  --surface-strong: #e8ded0;
-  --line: #d7ccb8;
-  --accent: #1f7a5a;
-  --accent-strong: #164f3e;
-  --gold: #c5852c;
-  --shadow: 0 24px 80px rgba(28, 36, 28, 0.14);
+  --surface-subtle: #e7ebe3;
+  --surface-strong: #dce3d9;
+  --line: #cbd4c8;
+  --line-strong: #aab7aa;
+  --accent: #557a62;
+  --accent-strong: #315d46;
+  --accent-soft: #dfe9e1;
+  --detail: #927544;
+  --detail-soft: #efe6d4;
+  --danger: #994d44;
+  --info: #55727a;
+  --success: #4f7c5a;
+  --warning: #9a7a43;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --space-page: clamp(16px, 3vw, 48px);
+  --shadow: 0 18px 60px rgba(23, 28, 24, 0.12);
+  --shadow-soft: 0 10px 28px rgba(23, 28, 24, 0.08);
+  --toast-fill: #26392f;
+  --toast-border: #6f8a72;
+  --toast-title: #f7fbf4;
+  --toast-description: #d9e5da;
+  --toast-action-bg: rgba(255, 255, 255, 0.12);
+  --sileo-state-success: oklch(0.56 0.095 145);
+  --sileo-state-loading: oklch(0.52 0.014 145);
+  --sileo-state-error: oklch(0.54 0.13 31);
+  --sileo-state-warning: oklch(0.62 0.115 78);
+  --sileo-state-info: oklch(0.56 0.065 205);
+  --sileo-state-action: oklch(0.54 0.09 160);
+  --sileo-width: min(350px, calc(100vw - 32px));
+  --sileo-height: 40px;
+  --sileo-duration: 560ms;
 }
 
 * {
@@ -17,6 +45,7 @@
 
 html {
   min-height: 100%;
+  background: var(--background);
 }
 
 body {
@@ -25,9 +54,13 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family:
+    Inter,
+    "Segoe UI",
     Arial,
     Helvetica,
     sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -39,4 +72,90 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 48%, transparent);
+  outline-offset: 3px;
+}
+
+.cityToastTitle {
+  color: var(--toast-title) !important;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.cityToastDescription {
+  color: var(--toast-description) !important;
+  line-height: 1.45;
+}
+
+.cityToastBadge {
+  background: color-mix(in srgb, var(--toast-title) 14%, transparent) !important;
+  color: var(--toast-title) !important;
+}
+
+.cityToastButton {
+  border: 1px solid color-mix(in srgb, var(--toast-title) 18%, transparent) !important;
+  background: var(--toast-action-bg) !important;
+  color: var(--toast-title) !important;
+}
+
+[data-sileo-viewport] [data-sileo-toast] {
+  filter: drop-shadow(0 18px 32px rgba(23, 28, 24, 0.16));
+}
+
+[data-sileo-viewport] [data-sileo-svg] path {
+  fill: var(--toast-fill) !important;
+  stroke: var(--toast-border) !important;
+}
+
+[data-sileo-viewport] [data-sileo-title] {
+  color: var(--toast-title) !important;
+  font-weight: 800;
+}
+
+[data-sileo-viewport] [data-sileo-description],
+[data-sileo-viewport][data-theme="dark"] [data-sileo-description],
+[data-sileo-viewport][data-theme="light"] [data-sileo-description] {
+  color: var(--toast-description) !important;
+}
+
+[data-sileo-viewport] [data-sileo-content] {
+  color: var(--toast-description) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: #101411;
+    --foreground: #edf2ec;
+    --muted: #a8b3a8;
+    --surface: #171d19;
+    --surface-subtle: #202821;
+    --surface-strong: #293329;
+    --line: #344037;
+    --line-strong: #4b5a4f;
+    --accent: #82aa8e;
+    --accent-strong: #a8c7ae;
+    --accent-soft: #1e2b22;
+    --detail: #c7a866;
+    --detail-soft: #322b1d;
+    --danger: #d28a80;
+    --info: #8fb4bd;
+    --success: #93ba9d;
+    --warning: #d2b16d;
+    --shadow: 0 18px 60px rgba(0, 0, 0, 0.34);
+    --shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.22);
+    --toast-fill: #eef3ed;
+    --toast-border: #8fa08f;
+    --toast-title: #101411;
+    --toast-description: #334033;
+    --toast-action-bg: rgba(16, 20, 17, 0.08);
+  }
 }

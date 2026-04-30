@@ -1,0 +1,660 @@
+.page {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  gap: 22px;
+  padding: var(--space-page);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.hero,
+.section,
+.panel {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.hero > div:first-child {
+  min-height: 360px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, rgba(49, 93, 70, 0.94), rgba(23, 28, 24, 0.82)),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: auto, 40px 40px, 40px 40px;
+  color: #f7faf5;
+  padding: clamp(24px, 4vw, 46px);
+  box-shadow: var(--shadow);
+}
+
+.kicker {
+  margin: 0 0 10px;
+  color: var(--detail);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.hero .kicker {
+  color: #d7bd7d;
+}
+
+.hero h1 {
+  max-width: 760px;
+  margin: 0;
+  font-family:
+    "Space Grotesk",
+    Inter,
+    "Segoe UI",
+    sans-serif;
+  font-size: clamp(2.6rem, 8vw, 6.4rem);
+  line-height: 0.95;
+}
+
+.hero p:last-child {
+  max-width: 720px;
+  margin: 24px 0 0;
+  color: rgba(247, 250, 245, 0.84);
+  font-size: 1.08rem;
+  line-height: 1.65;
+}
+
+.heroStats {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: 28px;
+  box-shadow: var(--shadow-soft);
+}
+
+.heroStats span,
+.heroStats small,
+.sectionHeader p,
+.propertyRow span,
+.ledgerList small,
+.notification span {
+  color: var(--muted);
+}
+
+.heroStats strong {
+  margin: 10px 0;
+  color: var(--accent-strong);
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.section,
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: clamp(18px, 3vw, 28px);
+  box-shadow: var(--shadow-soft);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 22px;
+  margin-bottom: 18px;
+}
+
+.sectionHeader h2,
+.panelHeader h2,
+.chartPanel h3,
+.forumPost h3 {
+  margin: 0;
+  font-family:
+    "Space Grotesk",
+    Inter,
+    "Segoe UI",
+    sans-serif;
+  font-size: 1.35rem;
+}
+
+.chartPanel h3 {
+  font-size: 1.1rem;
+}
+
+.forumPost h3 {
+  font-size: 1rem;
+}
+
+.sectionHeader p {
+  max-width: 620px;
+  margin: 0;
+  line-height: 1.55;
+}
+
+.swatches,
+.componentGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.swatch {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  padding: 10px;
+}
+
+.swatch div {
+  height: 58px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  margin-bottom: 12px;
+}
+
+.swatch strong,
+.swatch span {
+  display: block;
+}
+
+.swatch span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.layoutGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.panel {
+  margin: 0;
+}
+
+.panelHeader,
+.propertyRow,
+.notification {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panelHeader {
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.panelHeader svg,
+.propertyRow svg,
+.statGrid svg,
+.notification svg {
+  color: var(--accent);
+}
+
+.propertyList,
+.ledgerList {
+  display: grid;
+  gap: 10px;
+}
+
+.propertyRow {
+  min-height: 64px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  padding: 12px;
+}
+
+.propertyRow div {
+  min-width: 0;
+  flex: 1;
+}
+
+.propertyRow strong,
+.propertyRow span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.propertyRow b {
+  color: var(--accent-strong);
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.statGrid div,
+.ledgerList div {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  padding: 12px;
+}
+
+.statGrid strong,
+.statGrid span,
+.ledgerList span,
+.ledgerList strong,
+.ledgerList small {
+  display: block;
+}
+
+.statGrid strong {
+  margin-top: 12px;
+  color: var(--foreground);
+  font-size: 1.45rem;
+}
+
+.statGrid span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.ledgerList div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+}
+
+.ledgerList small {
+  grid-column: 1 / -1;
+}
+
+.primaryButton,
+.secondaryButton,
+.badge,
+.warningBadge {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-sm);
+  padding: 0 14px;
+  font-weight: 700;
+}
+
+.primaryButton,
+.secondaryButton {
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.primaryButton {
+  background: var(--accent-strong);
+  color: #ffffff;
+}
+
+.secondaryButton {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.badge {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.warningBadge {
+  background: var(--detail-soft);
+  color: var(--detail);
+}
+
+.notification {
+  grid-column: span 2;
+  min-height: 64px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  padding: 12px;
+}
+
+.notification strong,
+.notification span {
+  display: block;
+}
+
+.analyticsGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 16px;
+}
+
+.chartPanel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  padding: 18px;
+}
+
+.lineChart {
+  display: block;
+  height: 220px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 12px;
+}
+
+.lineChart svg,
+.financeChart svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.financeChart {
+  height: 220px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 12px;
+}
+
+.gridLines line {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.axisLabels text {
+  fill: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chartArea {
+  fill: color-mix(in srgb, var(--accent) 12%, transparent);
+  stroke: none;
+}
+
+.chartLine,
+.chartLineAlt {
+  fill: none;
+  stroke: var(--accent-strong);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.chartLineAlt {
+  stroke: var(--detail);
+  stroke-width: 3;
+}
+
+.chartDots circle {
+  fill: var(--surface);
+  stroke: var(--accent-strong);
+  stroke-width: 3;
+}
+
+.chartLegend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 14px;
+  color: var(--muted);
+}
+
+.chartLegend strong {
+  color: var(--accent-strong);
+}
+
+.financialSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.financialSummary div {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 10px;
+}
+
+.financialSummary span,
+.financialSummary strong {
+  display: block;
+}
+
+.financialSummary span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.financialSummary strong {
+  margin-top: 4px;
+  color: var(--foreground);
+  font-size: 0.98rem;
+}
+
+.forumList {
+  display: grid;
+  gap: 12px;
+}
+
+.forumPost {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  padding: 12px;
+}
+
+.postImage {
+  display: grid;
+  min-height: 86px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 24%, transparent), transparent),
+    var(--surface);
+  color: var(--accent-strong);
+}
+
+.forumPost span,
+.forumPost small,
+.propertyHero span,
+.factGrid span,
+.ownerList span,
+.statusGrid span {
+  color: var(--muted);
+}
+
+.forumPost span {
+  display: inline-flex;
+  margin-bottom: 6px;
+  color: var(--detail);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.forumPost p {
+  margin: 8px 0 10px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.forumPost small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.propertyHero {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, transparent), transparent),
+    var(--surface-subtle);
+  padding: 18px;
+}
+
+.propertyHero svg {
+  color: var(--accent-strong);
+}
+
+.propertyHero strong,
+.propertyHero span {
+  display: block;
+}
+
+.propertyHero strong {
+  color: var(--accent-strong);
+  font-size: 1.8rem;
+}
+
+.propertyHero span {
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.factGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.factGrid div,
+.ownerList div,
+.statusGrid article {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  padding: 12px;
+}
+
+.factGrid span,
+.factGrid strong {
+  display: block;
+}
+
+.factGrid strong {
+  margin-top: 4px;
+}
+
+.ownerList {
+  display: grid;
+  gap: 10px;
+}
+
+.ownerList div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.ownerList svg {
+  color: var(--accent);
+}
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.statusGrid article {
+  min-height: 150px;
+}
+
+.statusGrid svg {
+  color: var(--accent);
+}
+
+.statusGrid strong,
+.statusGrid span {
+  display: block;
+}
+
+.statusGrid strong {
+  margin-top: 18px;
+}
+
+.statusGrid span {
+  margin-top: 8px;
+  line-height: 1.45;
+}
+
+@media (max-width: 920px) {
+  .hero,
+  .layoutGrid,
+  .analyticsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .swatches,
+  .componentGrid,
+  .statusGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .sectionHeader {
+    display: block;
+  }
+
+  .sectionHeader p {
+    margin-top: 10px;
+  }
+
+  .swatches,
+  .componentGrid,
+  .statGrid,
+  .factGrid,
+  .statusGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .financialSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .forumPost {
+    grid-template-columns: 1fr;
+  }
+
+  .postImage {
+    min-height: 140px;
+  }
+
+  .propertyRow {
+    align-items: flex-start;
+  }
+
+  .propertyRow b,
+  .notification {
+    grid-column: auto;
+  }
+}
