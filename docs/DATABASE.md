@@ -264,6 +264,7 @@ Archivo:
 
 ```text
 supabase/migrations/20260430100000_create_property_rpc.sql
+supabase/migrations/20260430130000_property_units_rpc.sql
 ```
 
 La funcion `create_property_with_initial_owner` crea de forma atomica:
@@ -272,6 +273,19 @@ La funcion `create_property_with_initial_owner` crea de forma atomica:
 - El propietario inicial en `property_owners`.
 - La valoracion inicial en `property_valuations`.
 - Un evento de auditoria `property.created`.
+
+La migracion de unidades agrega `p_parent_property_id` para distinguir:
+
+- Propiedad matriz: propiedad sin `parent_property_id`.
+- Unidad privativa: propiedad con `parent_property_id`, por ejemplo
+  departamento, oficina o local interior.
+
+Reglas:
+
+- Una unidad debe pertenecer a la misma delegacion que su matriz.
+- Una unidad solo puede colgar de una propiedad matriz, no de otra unidad.
+- Las unidades tienen propietarios y valoraciones propias.
+- La auditoria usa `property.unit_created` cuando se registra una unidad.
 
 La funcion solo puede ejecutarse por usuarios autenticados que pertenezcan a la
 organizacion tipo `government`. La UI de gobierno debe usar esta RPC en lugar de

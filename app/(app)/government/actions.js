@@ -136,6 +136,7 @@ export async function createDistrict(_previousState = DEFAULT_STATE, formData) {
 export async function createProperty(_previousState = DEFAULT_STATE, formData) {
   await requireGovernmentProfile("/government");
   const districtId = getField(formData, "district_id");
+  const parentPropertyId = getField(formData, "parent_property_id");
   const name = getField(formData, "name");
   const requestedSlug = getField(formData, "slug");
   const address = getField(formData, "address");
@@ -234,6 +235,7 @@ export async function createProperty(_previousState = DEFAULT_STATE, formData) {
     p_organization_id: ownerType === "organization" ? ownerOrganizationId : null,
     p_owner_type: ownerType,
     p_ownership_percent: ownershipPercent,
+    p_parent_property_id: parentPropertyId || null,
     p_profile_id: ownerType === "profile" ? ownerProfileId : null,
     p_size_blocks: sizeBlocks,
     p_slug: slug,

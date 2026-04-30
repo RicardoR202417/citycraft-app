@@ -19,7 +19,7 @@ function formatRate(value) {
 }
 
 function formatMoney(value) {
-  return `₵${Number(value || 0).toLocaleString("es-MX", {
+  return `CC$${Number(value || 0).toLocaleString("es-MX", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })}`;
@@ -58,13 +58,21 @@ export default async function GovernmentPage() {
     .select("id, name, slug, description, base_appreciation_rate, created_at")
     .order("name", { ascending: true });
 
-  const { data: properties = [] } = await supabase.from("properties").select("district_id");
+  const { data: properties = [] } = await supabase.from("properties").select("district_id, parent_property_id");
 
   const { data: propertyRows = [] } = await supabase
     .from("properties")
-    .select("id, name, address, type, size_blocks, current_value, districts(name)")
+    .select(
+      "id, name, address, type, size_blocks, current_value, parent_property_id, districts(name), parent:properties!properties_parent_property_id_fkey(name)"
+    )
     .order("created_at", { ascending: false })
     .limit(20);
+
+  const { data: parentProperties = [] } = await supabase
+    .from("properties")
+    .select("id, name, districts(name)")
+    .is("parent_property_id", null)
+    .order("name", { ascending: true });
 
   const { data: valuations = [] } = await supabase
     .from("property_valuations")
@@ -82,6 +90,9 @@ export default async function GovernmentPage() {
     .select("id, name, type")
     .order("type", { ascending: true })
     .order("name", { ascending: true });
+
+  const unitCount = properties.filter((property) => property.parent_property_id).length;
+  const matrixCount = properties.length - unitCount;
 
   const propertyCountByDistrict = properties.reduce((counts, property) => {
     counts[property.district_id] = (counts[property.district_id] || 0) + 1;
@@ -115,6 +126,12 @@ export default async function GovernmentPage() {
     ),
     district: property.districts?.name || "Sin delegacion",
     type: <Badge tone="info">{formatPropertyType(property.type)}</Badge>,
+    kind: (
+      <Badge tone={property.parent_property_id ? "warning" : "success"}>
+        {property.parent_property_id ? "Unidad privativa" : "Matriz"}
+      </Badge>
+    ),
+    parent: property.parent?.name || "No aplica",
     size: Number(property.size_blocks).toLocaleString("es-MX"),
     value: formatMoney(property.current_value)
   }));
@@ -164,8 +181,13 @@ export default async function GovernmentPage() {
             </article>
             <article>
               <Building2 size={20} />
-              <strong>{properties.length}</strong>
-              <span>Propiedades</span>
+              <strong>{matrixCount}</strong>
+              <span>Propiedades matriz</span>
+            </article>
+            <article>
+              <Building2 size={20} />
+              <strong>{unitCount}</strong>
+              <span>Unidades privativas</span>
             </article>
           </div>
         </Card>
@@ -177,7 +199,12 @@ export default async function GovernmentPage() {
           title="Nueva propiedad"
           description="El registro crea propiedad, propietario inicial y valoracion inicial en una sola operacion."
         />
-        <PropertyForm districts={districts} organizations={organizations} profiles={profiles} />
+        <PropertyForm
+          districts={districts}
+          organizations={organizations}
+          parentProperties={parentProperties}
+          profiles={profiles}
+        />
       </Card>
 
       <Card className={styles.card}>
@@ -227,6 +254,8 @@ export default async function GovernmentPage() {
               { key: "name", label: "Propiedad" },
               { key: "district", label: "Delegacion" },
               { key: "type", label: "Tipo" },
+              { key: "kind", label: "Registro" },
+              { key: "parent", label: "Matriz" },
               { key: "size", label: "Bloques" },
               { key: "value", label: "Valor" }
             ]}

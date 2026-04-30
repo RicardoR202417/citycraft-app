@@ -18,7 +18,7 @@ const PROPERTY_TYPES = [
   ["public", "Publica"]
 ];
 
-export function PropertyForm({ districts, organizations, profiles }) {
+export function PropertyForm({ districts, organizations, parentProperties, profiles }) {
   const [state, formAction, isPending] = useActionState(createProperty, {
     error: "",
     message: ""
@@ -47,6 +47,18 @@ export function PropertyForm({ districts, organizations, profiles }) {
       <label>
         Direccion
         <input maxLength={180} name="address" required type="text" />
+      </label>
+
+      <label>
+        Propiedad matriz
+        <select name="parent_property_id">
+          <option value="">Es una propiedad matriz</option>
+          {parentProperties.map((property) => (
+            <option key={property.id} value={property.id}>
+              {property.name} - {property.districts?.name || "Sin delegacion"}
+            </option>
+          ))}
+        </select>
       </label>
 
       <div className={styles.grid}>
@@ -128,7 +140,8 @@ export function PropertyForm({ districts, organizations, profiles }) {
       </label>
 
       <p className={styles.hint}>
-        Selecciona un solo propietario inicial. Mas adelante agregaremos multiples propietarios desde el flujo de detalle.
+        Para registrar una unidad privativa, selecciona su propiedad matriz y usa la misma delegacion.
+        Selecciona un solo propietario inicial.
       </p>
 
       {state.error ? <p className={styles.error}>{state.error}</p> : null}
