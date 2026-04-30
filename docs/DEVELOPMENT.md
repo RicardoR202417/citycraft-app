@@ -118,7 +118,7 @@ lib/
 - Componentes con radio maximo de `8px`.
 - Iconos desde `lucide-react`.
 - Notificaciones con Sileo.
-- Cantidades de dinero con simbolo `₵`.
+- Cantidades de dinero con simbolo `CC$`.
 
 ## Supabase Auth
 

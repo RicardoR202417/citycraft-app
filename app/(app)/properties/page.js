@@ -1,19 +1,13 @@
 import { ArrowLeft, Building2, LandPlot, MapPinned, Percent } from "lucide-react";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireProfile } from "../../../lib/auth";
+import { formatMoney } from "../../../lib/economy";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import styles from "./page.module.css";
 
 export const metadata = {
   title: "Mis propiedades - CityCraft App"
 };
-
-function formatMoney(value) {
-  return `₵${Number(value || 0).toLocaleString("es-MX", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })}`;
-}
 
 function formatPropertyType(type) {
   const labels = {

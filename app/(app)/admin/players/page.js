@@ -1,6 +1,7 @@
 import { ArrowLeft, UserRoundCog, UsersRound, WalletCards } from "lucide-react";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader } from "../../../../components/ui";
 import { requireGlobalAdminProfile } from "../../../../lib/auth";
+import { formatWalletBalance } from "../../../../lib/economy";
 import { getSupabaseServiceClient } from "../../../../lib/supabase/server";
 import { AdminPlayerForm } from "./AdminPlayerForm";
 import styles from "./page.module.css";
@@ -8,16 +9,6 @@ import styles from "./page.module.css";
 export const metadata = {
   title: "Jugadores - Admin - CityCraft App"
 };
-
-function formatMoney(wallet) {
-  const symbol = wallet?.currency_symbol || "CC$";
-  const balance = Number(wallet?.balance || 0).toLocaleString("es-MX", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-
-  return `${symbol}${balance}`;
-}
 
 function formatDate(value) {
   return new Intl.DateTimeFormat("es-MX", {
@@ -56,7 +47,7 @@ export default async function AdminPlayersPage() {
             const summaryItems = [
               { label: "ID de perfil", value: player.id },
               { label: "Alta", value: formatDate(player.created_at) },
-              { label: "Wallet", value: formatMoney(wallet) },
+              { label: "Wallet", value: formatWalletBalance(wallet) },
               { label: "UID", value: player.gamertag_uid || "Pendiente" }
             ];
 

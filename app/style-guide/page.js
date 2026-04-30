@@ -30,15 +30,15 @@ const swatches = [
 ];
 
 const properties = [
-  ["Torre Prado", "Corporativo", "Distrito Central", "₵1,420,000"],
-  ["Mercado Norte", "Local", "Barrio Roble", "₵680,000"],
-  ["Avenida Lineal", "Infraestructura", "Eje Sur", "₵2,100,000"]
+  ["Torre Prado", "Corporativo", "Distrito Central", "CC$1,420,000"],
+  ["Mercado Norte", "Local", "Barrio Roble", "CC$680,000"],
+  ["Avenida Lineal", "Infraestructura", "Eje Sur", "CC$2,100,000"]
 ];
 
 const ledger = [
-  ["Asistencia validada", "+₵18,200", "Jugador"],
-  ["Impuesto por transferencia", "+₵3,400", "Gobierno"],
-  ["Oferta enviada", "-₵72,000", "Organizacion"]
+  ["Asistencia validada", "+CC$18,200", "Jugador"],
+  ["Impuesto por transferencia", "+CC$3,400", "Gobierno"],
+  ["Oferta enviada", "-CC$72,000", "Organizacion"]
 ];
 
 const forumPosts = [
@@ -144,7 +144,7 @@ export default function StyleGuidePage() {
           <div className={styles.statGrid}>
             <div>
               <Banknote size={18} />
-              <strong>₵4.8M</strong>
+              <strong>CC$4.8M</strong>
               <span>Fondos publicos</span>
             </div>
             <div>
@@ -292,11 +292,11 @@ export default function StyleGuidePage() {
                   <line x1="64" y1="224" x2="610" y2="224" />
                 </g>
                 <g className={styles.axisLabels}>
-                  <text x="8" y="40">₵5M</text>
-                  <text x="8" y="92">₵4M</text>
-                  <text x="8" y="144">₵3M</text>
-                  <text x="8" y="196">₵2M</text>
-                  <text x="8" y="228">₵1M</text>
+                  <text x="8" y="40">CC$5M</text>
+                  <text x="8" y="92">CC$4M</text>
+                  <text x="8" y="144">CC$3M</text>
+                  <text x="8" y="196">CC$2M</text>
+                  <text x="8" y="228">CC$1M</text>
                 </g>
                 <polyline
                   className={styles.chartLine}
@@ -320,11 +320,11 @@ export default function StyleGuidePage() {
             <div className={styles.financialSummary}>
               <div>
                 <span>Valor total</span>
-                <strong>₵8.9M</strong>
+                <strong>CC$8.9M</strong>
               </div>
               <div>
                 <span>Crecimiento</span>
-                <strong>+₵420K</strong>
+                <strong>+CC$420K</strong>
               </div>
               <div>
                 <span>Mayor zona</span>
@@ -375,7 +375,7 @@ export default function StyleGuidePage() {
           <div className={styles.propertyHero}>
             <Building2 size={42} />
             <div>
-              <strong>₵1,420,000</strong>
+              <strong>CC$1,420,000</strong>
               <span>Valor actualizado por plusvalia y tipo corporativo.</span>
             </div>
           </div>

@@ -211,6 +211,29 @@ El repositorio es publico. Por eso:
 - Encapsular operaciones economicas en RPC transaccionales.
 - Registrar dinero en `ledger_entries` y acciones sensibles en `audit_logs`.
 
+## Billeteras
+
+Archivo:
+
+```text
+supabase/migrations/20260430140000_wallet_currency_foundation.sql
+```
+
+Incluye:
+
+- Simbolo base de moneda ficticia: `CC$`.
+- Defaults actualizados en `wallets.currency_symbol` y
+  `ledger_entries.currency_symbol`.
+- Normalizacion de wallets existentes.
+- Creacion de wallets faltantes para perfiles y organizaciones existentes.
+
+Reglas:
+
+- Cada jugador debe tener exactamente una wallet.
+- Cada organizacion debe tener exactamente una wallet.
+- Los saldos no pueden ser negativos.
+- Los nuevos flujos economicos no deben actualizar saldo sin generar ledger.
+
 ## Registro inmobiliario base
 
 Archivo:

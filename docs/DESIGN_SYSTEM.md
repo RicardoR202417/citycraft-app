@@ -74,13 +74,13 @@ profundidad. El acento no debe volverse neon.
 
 ## Moneda
 
-Usar el simbolo `₵` para cantidades de dinero ficticio dentro de la interfaz.
+Usar el simbolo `CC$` para cantidades de dinero ficticio dentro de la interfaz.
 
 Ejemplos:
 
-- `₵1,420,000`
-- `+₵18,200`
-- `-₵72,000`
+- `CC$1,420,000`
+- `+CC$18,200`
+- `-CC$72,000`
 
 Evitar sufijos largos como `CC` dentro de tarjetas, tablas o notificaciones,
 porque hacen que las cantidades se vean menos financieras.

@@ -16,7 +16,7 @@ export function ToastDemo() {
         ...common,
         icon: <Gavel size={16} />,
         title: "Nueva puja registrada",
-        description: "Distrito Central supera la oferta actual por ₵12,500."
+        description: "Distrito Central supera la oferta actual por CC$12,500."
       });
       return;
     }

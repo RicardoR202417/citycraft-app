@@ -1,6 +1,7 @@
 import { Building2, LandPlot, Landmark, LogOut, MapPinned, ShieldCheck, UserRoundPen, WalletCards } from "lucide-react";
 import { Badge, Button, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader } from "../../../components/ui";
 import { getProfileVisibility, isGlobalAdmin, isGovernmentMember, requireProfile } from "../../../lib/auth";
+import { formatWalletBalance } from "../../../lib/economy";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { signOut } from "./actions";
 import styles from "./page.module.css";
@@ -87,13 +88,7 @@ export default async function DashboardPage() {
           />
           <div className={styles.balance}>
             <WalletCards size={24} />
-            <strong>
-              {wallet?.currency_symbol || "₵"}
-              {Number(wallet?.balance || 0).toLocaleString("es-MX", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              })}
-            </strong>
+            <strong>{formatWalletBalance(wallet)}</strong>
             <span>Saldo inicial</span>
           </div>
         </Card>

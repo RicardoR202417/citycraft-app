@@ -1,6 +1,7 @@
 import { ArrowLeft, Building2, Landmark, MapPinned } from "lucide-react";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireGovernmentProfile } from "../../../lib/auth";
+import { formatMoney } from "../../../lib/economy";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase/server";
 import { DistrictForm } from "./DistrictForm";
 import { PropertyForm } from "./PropertyForm";
@@ -16,13 +17,6 @@ function formatRate(value) {
     minimumFractionDigits: 3,
     maximumFractionDigits: 3
   })}%`;
-}
-
-function formatMoney(value) {
-  return `CC$${Number(value || 0).toLocaleString("es-MX", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })}`;
 }
 
 function formatPropertyType(type) {
