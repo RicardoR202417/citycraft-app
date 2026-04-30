@@ -25,6 +25,7 @@ dist/
 # Database dumps and local data
 *.dump
 *.sql
+!supabase/migrations/*.sql
 *.sqlite
 *.sqlite3
 supabase/.branches/
