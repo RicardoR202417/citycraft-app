@@ -1,0 +1,26 @@
+.page {
+  display: grid;
+  gap: 22px;
+  min-height: 100vh;
+  padding: var(--space-page);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.72fr);
+  gap: 18px;
+}
+
+.card {
+  padding: clamp(18px, 3vw, 26px);
+}
+
+.card > * + * {
+  margin-top: 18px;
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

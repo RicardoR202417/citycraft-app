@@ -1,5 +1,5 @@
-import { Building2, LandPlot, LogOut, WalletCards } from "lucide-react";
-import { Badge, Button, Card, DataList, EmptyState, PageHeader, SectionHeader } from "../../../components/ui";
+import { Building2, LandPlot, LogOut, UserRoundPen, WalletCards } from "lucide-react";
+import { Badge, Button, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader } from "../../../components/ui";
 import { getProfileVisibility, requireProfile } from "../../../lib/auth";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { signOut } from "./actions";
@@ -37,11 +37,16 @@ export default async function DashboardPage() {
     <main className={styles.page}>
       <PageHeader
         actions={
-          <form action={signOut}>
-            <Button icon={LogOut} type="submit" variant="secondary">
-              Salir
-            </Button>
-          </form>
+          <>
+            <LinkButton href="/profile" icon={UserRoundPen} variant="secondary">
+              Perfil
+            </LinkButton>
+            <form action={signOut}>
+              <Button icon={LogOut} type="submit" variant="secondary">
+                Salir
+              </Button>
+            </form>
+          </>
         }
         description="Base privada para revisar identidad, billetera y organizaciones antes de construir los modulos reales."
         eyebrow="Panel privado"

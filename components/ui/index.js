@@ -4,6 +4,7 @@ export { Card } from "./Card";
 export { DataList } from "./DataList";
 export { EmptyState } from "./EmptyState";
 export { IconButton } from "./IconButton";
+export { LinkButton } from "./LinkButton";
 export { PageHeader } from "./PageHeader";
 export { SectionHeader } from "./SectionHeader";
 export { Table } from "./Table";
