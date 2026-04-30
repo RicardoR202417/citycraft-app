@@ -1,4 +1,4 @@
-import { Building2, LandPlot, Landmark, LogOut, UserRoundPen, WalletCards } from "lucide-react";
+import { Building2, LandPlot, Landmark, LogOut, MapPinned, UserRoundPen, WalletCards } from "lucide-react";
 import { Badge, Button, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader } from "../../../components/ui";
 import { getProfileVisibility, isGovernmentMember, requireProfile } from "../../../lib/auth";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
@@ -45,6 +45,9 @@ export default async function DashboardPage() {
                 Gobierno
               </LinkButton>
             ) : null}
+            <LinkButton href="/properties" icon={MapPinned} variant="secondary">
+              Propiedades
+            </LinkButton>
             <LinkButton href="/profile" icon={UserRoundPen} variant="secondary">
               Perfil
             </LinkButton>
