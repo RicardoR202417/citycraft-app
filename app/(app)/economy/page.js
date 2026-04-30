@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight, LayoutDashboard, ReceiptText, WalletCards } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, HandCoins, LayoutDashboard, ReceiptText, WalletCards } from "lucide-react";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireProfile } from "../../../lib/auth";
 import { formatMoney, formatWalletBalance, getWalletCurrency } from "../../../lib/economy";
@@ -18,6 +18,23 @@ function formatDate(value) {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(value));
+}
+
+function formatDay(value) {
+  if (!value) {
+    return "Pendiente";
+  }
+
+  return new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "medium"
+  }).format(new Date(`${value}T00:00:00`));
+}
+
+function formatPayoutRate(value) {
+  return `${(Number(value || 0) * 100).toLocaleString("es-MX", {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3
+  })}%`;
 }
 
 function getMovementDirection(entry, walletId) {
@@ -83,6 +100,18 @@ export default async function EconomyPage() {
     throw new Error(`Could not load ledger entries: ${ledgerError.message}`);
   }
 
+  const { data: payouts = [], error: payoutsError } = await supabase
+    .from("daily_payouts")
+    .select("id, payout_date, gross_property_value, payout_rate, payout_amount, ledger_entry_id, created_at")
+    .eq("profile_id", profile.id)
+    .order("payout_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(12);
+
+  if (payoutsError) {
+    throw new Error(`Could not load daily payouts: ${payoutsError.message}`);
+  }
+
   const currencySymbol = getWalletCurrency(wallet);
   const incomingTotal = entries
     .filter((entry) => entry.to_wallet_id === wallet?.id)
@@ -90,6 +119,8 @@ export default async function EconomyPage() {
   const outgoingTotal = entries
     .filter((entry) => entry.from_wallet_id === wallet?.id)
     .reduce((total, entry) => total + Number(entry.amount || 0), 0);
+  const payoutTotal = payouts.reduce((total, payout) => total + Number(payout.payout_amount || 0), 0);
+  const lastPayout = payouts[0];
 
   const rows = entries.map((entry) => {
     const direction = getMovementDirection(entry, wallet.id);
@@ -115,6 +146,19 @@ export default async function EconomyPage() {
       createdAt: formatDate(entry.created_at)
     };
   });
+
+  const payoutRows = payouts.map((payout) => ({
+    id: payout.id,
+    day: formatDay(payout.payout_date),
+    grossValue: formatMoney(payout.gross_property_value, currencySymbol),
+    rate: formatPayoutRate(payout.payout_rate),
+    amount: <strong className={styles.income}>{formatMoney(payout.payout_amount, currencySymbol)}</strong>,
+    ledger: (
+      <Badge tone={payout.ledger_entry_id ? "success" : "neutral"}>
+        {payout.ledger_entry_id ? "Con ledger" : "Sin movimiento"}
+      </Badge>
+    )
+  }));
 
   return (
     <main className={styles.page}>
@@ -153,11 +197,40 @@ export default async function EconomyPage() {
             items={[
               { label: "Entradas recientes", value: formatMoney(incomingTotal, currencySymbol) },
               { label: "Salidas recientes", value: formatMoney(outgoingTotal, currencySymbol) },
-              { label: "Movimientos visibles", value: entries.length }
+              { label: "Pagos diarios", value: payouts.length },
+              { label: "Total en pagos visibles", value: formatMoney(payoutTotal, currencySymbol) },
+              { label: "Ultimo pago", value: lastPayout ? formatMoney(lastPayout.payout_amount, currencySymbol) : "Pendiente" }
             ]}
           />
         </Card>
       </section>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Pagos diarios"
+          title="Rendimiento por asistencia"
+          description="Pagos generados por el gobierno cuando tu asistencia valida queda registrada."
+        />
+        {payoutRows.length ? (
+          <Table
+            columns={[
+              { key: "day", label: "Fecha" },
+              { key: "grossValue", label: "Valor base" },
+              { key: "rate", label: "Tasa" },
+              { key: "amount", label: "Pago" },
+              { key: "ledger", label: "Ledger" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={payoutRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando el gobierno registre una asistencia valida, tu pago diario aparecera en este historial."
+            icon={HandCoins}
+            title="Sin pagos diarios"
+          />
+        )}
+      </Card>
 
       <Card className={styles.card}>
         <SectionHeader

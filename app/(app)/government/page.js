@@ -20,6 +20,13 @@ function formatRate(value) {
   })}%`;
 }
 
+function formatPayoutRate(value) {
+  return `${(Number(value || 0) * 100).toLocaleString("es-MX", {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3
+  })}%`;
+}
+
 function formatPropertyType(type) {
   const labels = {
     commercial: "Local",
@@ -90,6 +97,13 @@ export default async function GovernmentPage() {
     .order("created_at", { ascending: false })
     .limit(20);
 
+  const { data: payoutsData } = await supabase
+    .from("daily_payouts")
+    .select("id, profile_id, payout_date, gross_property_value, payout_rate, payout_amount, ledger_entry_id, created_at")
+    .order("payout_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(20);
+
   const { data: profilesData } = await serviceSupabase
     .from("profiles")
     .select("id, gamertag")
@@ -107,6 +121,7 @@ export default async function GovernmentPage() {
   const parentProperties = asArray(parentPropertiesData);
   const valuations = asArray(valuationsData);
   const attendanceRecords = asArray(attendanceData);
+  const dailyPayouts = asArray(payoutsData);
   const profiles = asArray(profilesData);
   const organizations = asArray(organizationsData);
   const propertyNameById = new Map(properties.map((property) => [property.id, property.name]));
@@ -173,6 +188,20 @@ export default async function GovernmentPage() {
     status: <Badge tone={record.is_valid ? "success" : "warning"}>{record.is_valid ? "Valida" : "No valida"}</Badge>,
     recordedBy: profileNameById.get(record.recorded_by) || "Gobierno",
     notes: record.notes || "Sin notas"
+  }));
+
+  const payoutRows = dailyPayouts.map((payout) => ({
+    id: payout.id,
+    player: profileNameById.get(payout.profile_id) || "Jugador no disponible",
+    day: formatDay(payout.payout_date),
+    grossValue: formatMoney(payout.gross_property_value),
+    rate: formatPayoutRate(payout.payout_rate),
+    amount: formatMoney(payout.payout_amount),
+    ledger: (
+      <Badge tone={payout.ledger_entry_id ? "success" : "neutral"}>
+        {payout.ledger_entry_id ? "Con ledger" : "Pago cero"}
+      </Badge>
+    )
   }));
 
   return (
@@ -361,6 +390,34 @@ export default async function GovernmentPage() {
             description="Cuando marques asistencia de jugadores, el historial reciente aparecera aqui."
             icon={CalendarCheck}
             title="Sin asistencias registradas"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Economia"
+          title="Pagos diarios recientes"
+          description="Auditoria operativa de pagos generados al registrar asistencias validas."
+        />
+        {dailyPayouts.length ? (
+          <Table
+            columns={[
+              { key: "player", label: "Jugador" },
+              { key: "day", label: "Fecha" },
+              { key: "grossValue", label: "Valor base" },
+              { key: "rate", label: "Tasa" },
+              { key: "amount", label: "Pago" },
+              { key: "ledger", label: "Ledger" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={payoutRows}
+          />
+        ) : (
+          <EmptyState
+            description="Los pagos apareceran aqui cuando se registre una asistencia valida con rendimiento directo."
+            icon={Landmark}
+            title="Sin pagos diarios"
           />
         )}
       </Card>

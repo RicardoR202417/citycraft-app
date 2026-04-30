@@ -313,6 +313,8 @@ Reglas:
   y el pago queda en `0`, sin entrada de ledger.
 - La version inicial no incluye pago proporcional a organizaciones; eso queda
   para una historia posterior.
+- El jugador puede consultar sus pagos en `/economy`; gobierno puede revisar
+  pagos recientes en `/government`.
 
 ## Registro inmobiliario base
 
