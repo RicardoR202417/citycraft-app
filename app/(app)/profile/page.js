@@ -1,7 +1,8 @@
 import { ArrowLeft } from "lucide-react";
-import { Card, DataList, LinkButton, PageHeader, SectionHeader } from "../../../components/ui";
+import { Card, LinkButton, PageHeader, SectionHeader } from "../../../components/ui";
 import { getProfileVisibility, requireProfile } from "../../../lib/auth";
 import { ProfileIdentityForm } from "./ProfileIdentityForm";
+import { ProfileVisibilityForm } from "./ProfileVisibilityForm";
 import styles from "./page.module.css";
 
 export const metadata = {
@@ -11,13 +12,6 @@ export const metadata = {
 export default async function ProfilePage() {
   const profile = await requireProfile("/profile");
   const visibility = getProfileVisibility(profile);
-
-  const visibilityItems = [
-    { label: "Perfil publico", value: visibility.profile ? "Visible" : "Privado" },
-    { label: "Gamertag publico", value: visibility.gamertag ? "Visible" : "Privado" },
-    { label: "UID publico", value: visibility.gamertag_uid ? "Visible" : "Privado" },
-    { label: "Billetera publica", value: visibility.wallet ? "Visible" : "Privada" }
-  ];
 
   return (
     <main className={styles.page}>
@@ -44,11 +38,11 @@ export default async function ProfilePage() {
 
         <Card className={styles.card}>
           <SectionHeader
-            description="La visibilidad granular se gestionara en una historia posterior."
+            description="Elige que partes de tu perfil pueden aparecer en vistas publicas."
             eyebrow="Privacidad"
-            title="Estado de visibilidad"
+            title="Visibilidad publica"
           />
-          <DataList items={visibilityItems} />
+          <ProfileVisibilityForm visibility={visibility} />
         </Card>
       </section>
     </main>

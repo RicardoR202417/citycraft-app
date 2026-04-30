@@ -97,6 +97,17 @@ compatibilidad inicial, pero la configuracion granular vive en
 La vista `public_profiles` expone solo campos permitidos por las banderas de
 visibilidad. La tabla `profiles` completa solo es legible por el usuario dueno.
 
+Visibilidad inicial disponible:
+
+- `profile`: habilita o deshabilita el perfil publico completo.
+- `gamertag`: muestra el gamertag.
+- `gamertag_uid`: muestra el UID del gamertag.
+- `avatar`: muestra avatar cuando exista.
+- `bio`: muestra biografia cuando exista.
+- `wallet`: prepara visibilidad publica de billetera.
+- `organizations`: prepara visibilidad publica de organizaciones.
+- `properties`: prepara visibilidad publica de propiedades.
+
 ## Aplicar migraciones
 
 Opcion con `psql`:

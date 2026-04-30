@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAuth } from "../../../lib/auth";
+import { DEFAULT_PROFILE_VISIBILITY, requireAuth } from "../../../lib/auth";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 
 const DEFAULT_STATE = {
@@ -12,6 +12,10 @@ const DEFAULT_STATE = {
 function getField(formData, fieldName) {
   const value = formData.get(fieldName);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function getBooleanField(formData, fieldName) {
+  return formData.get(fieldName) === "on";
 }
 
 function friendlyProfileError(error) {
@@ -80,5 +84,64 @@ export async function updatePlayerIdentity(_previousState = DEFAULT_STATE, formD
   return {
     error: "",
     message: "Identidad de jugador actualizada."
+  };
+}
+
+export async function updateProfileVisibility(_previousState = DEFAULT_STATE, formData) {
+  const user = await requireAuth("/profile");
+  const visibilitySettings = {
+    ...DEFAULT_PROFILE_VISIBILITY,
+    profile: getBooleanField(formData, "profile"),
+    gamertag: getBooleanField(formData, "gamertag"),
+    gamertag_uid: getBooleanField(formData, "gamertag_uid"),
+    avatar: getBooleanField(formData, "avatar"),
+    bio: getBooleanField(formData, "bio"),
+    wallet: getBooleanField(formData, "wallet"),
+    organizations: getBooleanField(formData, "organizations"),
+    properties: getBooleanField(formData, "properties")
+  };
+
+  if (!visibilitySettings.profile) {
+    visibilitySettings.gamertag = false;
+    visibilitySettings.gamertag_uid = false;
+    visibilitySettings.avatar = false;
+    visibilitySettings.bio = false;
+    visibilitySettings.wallet = false;
+    visibilitySettings.organizations = false;
+    visibilitySettings.properties = false;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({
+      public_profile: visibilitySettings.profile,
+      public_wallet: visibilitySettings.wallet,
+      visibility_settings: visibilitySettings
+    })
+    .eq("id", user.id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    return {
+      error: friendlyProfileError(error),
+      message: ""
+    };
+  }
+
+  if (!data) {
+    return {
+      error: "No se encontro un perfil asociado a tu sesion.",
+      message: ""
+    };
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/dashboard");
+
+  return {
+    error: "",
+    message: "Preferencias de visibilidad actualizadas."
   };
 }

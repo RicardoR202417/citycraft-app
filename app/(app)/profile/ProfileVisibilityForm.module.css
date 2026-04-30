@@ -1,0 +1,119 @@
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.options {
+  display: grid;
+  gap: 10px;
+}
+
+.option {
+  display: grid;
+  position: relative;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  padding: 12px;
+  cursor: pointer;
+}
+
+.option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.switch {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.switch::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--muted);
+  content: "";
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.option input:checked + .switch {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.option input:checked + .switch::after {
+  background: var(--accent-strong);
+  transform: translateX(18px);
+}
+
+.option input:focus-visible + .switch {
+  outline: 3px solid color-mix(in srgb, var(--accent) 48%, transparent);
+  outline-offset: 3px;
+}
+
+.copy {
+  display: grid;
+  gap: 3px;
+}
+
+.copy strong {
+  color: var(--foreground);
+}
+
+.copy small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.error,
+.message {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  line-height: 1.45;
+}
+
+.error {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+
+.message {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 620px) {
+  .actions {
+    justify-content: stretch;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}
