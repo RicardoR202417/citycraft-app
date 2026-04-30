@@ -103,6 +103,9 @@ Reglas:
   controlada de servidor o SQL usando credenciales seguras.
 - El `service_role` nunca debe exponerse al navegador.
 
+Ver tambien [`docs/ADMINISTRATION.md`](./ADMINISTRATION.md) para politicas
+operativas, auditoria y rotacion.
+
 ## Modelo `profiles`
 
 La tabla `profiles` guarda la identidad privada del jugador y esta vinculada a
