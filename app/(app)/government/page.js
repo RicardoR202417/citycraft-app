@@ -48,48 +48,59 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 export default async function GovernmentPage() {
   await requireGovernmentProfile("/government");
   const supabase = await createSupabaseServerClient();
   const serviceSupabase = getSupabaseServiceClient();
 
-  const { data: districts = [] } = await supabase
+  const { data: districtsData } = await supabase
     .from("districts")
     .select("id, name, slug, description, base_appreciation_rate, created_at")
     .order("name", { ascending: true });
 
-  const { data: properties = [] } = await supabase.from("properties").select("district_id, parent_property_id");
+  const { data: propertiesData } = await supabase.from("properties").select("id, name, district_id, parent_property_id");
 
-  const { data: propertyRows = [] } = await supabase
+  const { data: propertyRowsData } = await supabase
     .from("properties")
-    .select(
-      "id, name, address, type, size_blocks, current_value, parent_property_id, districts(name), parent:properties!properties_parent_property_id_fkey(name)"
-    )
+    .select("id, name, address, type, size_blocks, current_value, parent_property_id, districts(name)")
     .order("created_at", { ascending: false })
     .limit(20);
 
-  const { data: parentProperties = [] } = await supabase
+  const { data: parentPropertiesData } = await supabase
     .from("properties")
     .select("id, name, districts(name)")
     .is("parent_property_id", null)
     .order("name", { ascending: true });
 
-  const { data: valuations = [] } = await supabase
+  const { data: valuationsData } = await supabase
     .from("property_valuations")
     .select("id, value, reason, created_at, properties(id, name)")
     .order("created_at", { ascending: false })
     .limit(20);
 
-  const { data: profiles = [] } = await serviceSupabase
+  const { data: profilesData } = await serviceSupabase
     .from("profiles")
     .select("id, gamertag")
     .order("gamertag", { ascending: true });
 
-  const { data: organizations = [] } = await serviceSupabase
+  const { data: organizationsData } = await serviceSupabase
     .from("organizations")
     .select("id, name, type")
     .order("type", { ascending: true })
     .order("name", { ascending: true });
+
+  const districts = asArray(districtsData);
+  const properties = asArray(propertiesData);
+  const propertyRows = asArray(propertyRowsData);
+  const parentProperties = asArray(parentPropertiesData);
+  const valuations = asArray(valuationsData);
+  const profiles = asArray(profilesData);
+  const organizations = asArray(organizationsData);
+  const propertyNameById = new Map(properties.map((property) => [property.id, property.name]));
 
   const unitCount = properties.filter((property) => property.parent_property_id).length;
   const matrixCount = properties.length - unitCount;
@@ -131,7 +142,7 @@ export default async function GovernmentPage() {
         {property.parent_property_id ? "Unidad privativa" : "Matriz"}
       </Badge>
     ),
-    parent: property.parent?.name || "No aplica",
+    parent: property.parent_property_id ? propertyNameById.get(property.parent_property_id) || "Matriz no disponible" : "No aplica",
     size: Number(property.size_blocks).toLocaleString("es-MX"),
     value: formatMoney(property.current_value)
   }));
