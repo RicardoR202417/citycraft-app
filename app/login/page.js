@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Card } from "../../components/ui";
 import { getCurrentUser } from "../../lib/auth";
+import { normalizeRedirectPath } from "../../lib/auth/routes";
 import { LoginForm } from "./LoginForm";
 import styles from "./page.module.css";
 
@@ -8,11 +9,13 @@ export const metadata = {
   title: "Iniciar sesion - CityCraft App"
 };
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }) {
   const user = await getCurrentUser();
+  const params = await searchParams;
+  const nextPath = normalizeRedirectPath(params?.next);
 
   if (user) {
-    redirect("/dashboard");
+    redirect(nextPath);
   }
 
   return (
