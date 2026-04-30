@@ -234,6 +234,31 @@ Reglas:
 - Los saldos no pueden ser negativos.
 - Los nuevos flujos economicos no deben actualizar saldo sin generar ledger.
 
+## Ledger economico
+
+Archivo:
+
+```text
+supabase/migrations/20260430150000_ledger_foundation.sql
+```
+
+Incluye:
+
+- Tipos de movimiento permitidos para `ledger_entries.entry_type`.
+- Indices por wallet y fecha para consultar historiales recientes.
+- Funcion interna `credit_wallet_with_ledger` para acreditar saldo y crear el
+  movimiento auditable dentro de la misma transaccion.
+
+Reglas:
+
+- El ledger es la fuente de verdad historica de movimientos economicos.
+- `wallets.balance` representa el saldo vigente para consultas rapidas.
+- Toda mutacion futura de saldo debe pasar por una RPC transaccional.
+- `credit_wallet_with_ledger` no se expone directo al cliente autenticado; la
+  usaran RPCs especificas como pagos diarios, ajustes o cierres de mercado.
+- La pantalla privada `/economy` muestra el saldo del jugador y sus ultimos
+  movimientos visibles segun RLS.
+
 ## Registro inmobiliario base
 
 Archivo:
