@@ -1,0 +1,85 @@
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.form label {
+  display: grid;
+  gap: 8px;
+  color: var(--foreground);
+  font-weight: 800;
+}
+
+.form input,
+.form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--foreground);
+  padding: 0 12px;
+  font: inherit;
+}
+
+.form input {
+  min-height: 44px;
+}
+
+.form textarea {
+  min-height: 108px;
+  padding-block: 12px;
+  resize: vertical;
+}
+
+.form input::placeholder {
+  color: var(--muted);
+}
+
+.form input:focus,
+.form textarea:focus {
+  border-color: var(--accent);
+  outline: 0;
+}
+
+.error,
+.message {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  line-height: 1.45;
+}
+
+.error {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+
+.message {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}
