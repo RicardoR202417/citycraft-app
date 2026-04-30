@@ -135,10 +135,10 @@ supabase db push
 Las siguientes tablas se agregaran por Epic/historia, no todas desde el inicio:
 
 - Registro inmobiliario:
-  - `districts`
-  - `properties`
-  - `property_owners`
-  - `property_valuations`
+  - `districts` listo en `20260430090000_property_registry.sql`.
+  - `properties` listo en `20260430090000_property_registry.sql`.
+  - `property_owners` listo en `20260430090000_property_registry.sql`.
+  - `property_valuations` listo en `20260430090000_property_registry.sql`.
 - Economia:
   - `attendance_records`
   - `daily_payouts`
@@ -180,3 +180,50 @@ El repositorio es publico. Por eso:
 - Mantener RLS activo en tablas publicas.
 - Encapsular operaciones economicas en RPC transaccionales.
 - Registrar dinero en `ledger_entries` y acciones sensibles en `audit_logs`.
+
+## Registro inmobiliario base
+
+Archivo:
+
+```text
+supabase/migrations/20260430090000_property_registry.sql
+```
+
+Incluye:
+
+- Tipos:
+  - `property_type`: `land`, `residential`, `commercial`, `corporate`,
+    `cultural`, `entertainment`, `infrastructure`, `service`, `public`.
+  - `property_status`: `planned`, `active`, `under_review`, `demolished`,
+    `archived`.
+  - `property_owner_type`: `profile`, `organization`.
+- Tablas:
+  - `districts`: delegaciones o colonias.
+  - `properties`: propiedades principales y soporte futuro para unidades con
+    `parent_property_id`.
+  - `property_owners`: participaciones por jugador u organizacion.
+  - `property_valuations`: historial auditable de valoracion.
+- Constraints:
+  - Slugs normalizados.
+  - Valores y tamanos no negativos.
+  - Un propietario debe ser jugador u organizacion, nunca ambos.
+  - La suma de porcentajes por propiedad no puede superar 100%.
+- Funcion:
+  - `is_government_member()` centraliza permisos de administracion publica.
+- RLS:
+  - Delegaciones y propiedades son legibles publicamente.
+  - Propietarios son visibles para gobierno, dueno directo o miembros de la
+    organizacion propietaria.
+  - Valoraciones son legibles si la propiedad existe.
+  - Solo gobierno puede administrar delegaciones, propiedades, propietarios y
+    valoraciones.
+
+Notas de modelado:
+
+- `districts.base_appreciation_rate` prepara la plusvalia por zona sin activar
+  aun el calculo automatico.
+- `properties.current_value` representa el valor vigente para listados rapidos.
+- `property_valuations` mantiene la historia; cada cambio futuro de valor debe
+  crear una fila nueva.
+- Las unidades privativas o interiores se representaran usando
+  `parent_property_id`, pero su UI queda para un sprint posterior.
