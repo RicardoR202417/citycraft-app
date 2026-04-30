@@ -39,6 +39,26 @@ function friendlyDistrictError(error) {
   return "No se pudo registrar la delegacion. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlyPropertyError(error) {
+  if (!error?.message) {
+    return "No se pudo registrar la propiedad. Intenta nuevamente.";
+  }
+
+  if (error.code === "23505") {
+    return "Ya existe una propiedad con ese slug o propietario duplicado.";
+  }
+
+  if (error.code === "23514") {
+    return "Revisa tipo, tamano, valor y propietario antes de guardar.";
+  }
+
+  if (error.code === "42501") {
+    return "Solo el gobierno puede registrar propiedades.";
+  }
+
+  return "No se pudo registrar la propiedad. Revisa los datos e intenta nuevamente.";
+}
+
 export async function createDistrict(_previousState = DEFAULT_STATE, formData) {
   const profile = await requireGovernmentProfile("/government");
   const name = getField(formData, "name");
@@ -90,5 +110,128 @@ export async function createDistrict(_previousState = DEFAULT_STATE, formData) {
   return {
     error: "",
     message: "Delegacion registrada."
+  };
+}
+
+export async function createProperty(_previousState = DEFAULT_STATE, formData) {
+  await requireGovernmentProfile("/government");
+  const districtId = getField(formData, "district_id");
+  const name = getField(formData, "name");
+  const requestedSlug = getField(formData, "slug");
+  const address = getField(formData, "address");
+  const type = getField(formData, "type");
+  const description = getField(formData, "description");
+  const ownerProfileId = getField(formData, "owner_profile_id");
+  const ownerOrganizationId = getField(formData, "owner_organization_id");
+  const ownerType = ownerProfileId ? "profile" : "organization";
+  const sizeBlocks = Number(getField(formData, "size_blocks"));
+  const currentValue = Number(getField(formData, "current_value"));
+  const ownershipPercent = Number(getField(formData, "ownership_percent") || 100);
+  const valuationReason = getField(formData, "valuation_reason") || "Valor inicial";
+  const slug = slugify(requestedSlug || name);
+  const propertyTypes = new Set([
+    "land",
+    "residential",
+    "commercial",
+    "corporate",
+    "cultural",
+    "entertainment",
+    "infrastructure",
+    "service",
+    "public"
+  ]);
+
+  if (!districtId) {
+    return {
+      error: "Selecciona una delegacion.",
+      message: ""
+    };
+  }
+
+  if (name.length < 2 || name.length > 120) {
+    return {
+      error: "El nombre debe tener entre 2 y 120 caracteres.",
+      message: ""
+    };
+  }
+
+  if (!slug || slug.length > 120) {
+    return {
+      error: "El slug no es valido. Usa letras, numeros y guiones.",
+      message: ""
+    };
+  }
+
+  if (!address) {
+    return {
+      error: "La direccion es obligatoria.",
+      message: ""
+    };
+  }
+
+  if (!propertyTypes.has(type)) {
+    return {
+      error: "Selecciona un tipo de propiedad valido.",
+      message: ""
+    };
+  }
+
+  if (!Number.isFinite(sizeBlocks) || sizeBlocks <= 0) {
+    return {
+      error: "El tamano debe ser mayor a 0 bloques.",
+      message: ""
+    };
+  }
+
+  if (!Number.isFinite(currentValue) || currentValue < 0) {
+    return {
+      error: "El valor inicial no puede ser negativo.",
+      message: ""
+    };
+  }
+
+  if ((ownerProfileId && ownerOrganizationId) || (!ownerProfileId && !ownerOrganizationId)) {
+    return {
+      error: "Selecciona un solo propietario inicial: jugador u organizacion.",
+      message: ""
+    };
+  }
+
+  if (!Number.isFinite(ownershipPercent) || ownershipPercent <= 0 || ownershipPercent > 100) {
+    return {
+      error: "El porcentaje debe estar entre 0.01 y 100.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("create_property_with_initial_owner", {
+    p_address: address,
+    p_current_value: currentValue,
+    p_description: description || "",
+    p_district_id: districtId,
+    p_name: name,
+    p_organization_id: ownerType === "organization" ? ownerOrganizationId : null,
+    p_owner_type: ownerType,
+    p_ownership_percent: ownershipPercent,
+    p_profile_id: ownerType === "profile" ? ownerProfileId : null,
+    p_size_blocks: sizeBlocks,
+    p_slug: slug,
+    p_type: type,
+    p_valuation_reason: valuationReason
+  });
+
+  if (error) {
+    return {
+      error: friendlyPropertyError(error),
+      message: ""
+    };
+  }
+
+  revalidatePath("/government");
+
+  return {
+    error: "",
+    message: "Propiedad registrada con propietario y valoracion inicial."
   };
 }

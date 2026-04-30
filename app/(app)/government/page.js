@@ -1,8 +1,9 @@
 import { ArrowLeft, Building2, Landmark, MapPinned } from "lucide-react";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireGovernmentProfile } from "../../../lib/auth";
-import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase/server";
 import { DistrictForm } from "./DistrictForm";
+import { PropertyForm } from "./PropertyForm";
 import styles from "./page.module.css";
 
 export const metadata = {
@@ -16,9 +17,33 @@ function formatRate(value) {
   })}%`;
 }
 
+function formatMoney(value) {
+  return `₵${Number(value || 0).toLocaleString("es-MX", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
+}
+
+function formatPropertyType(type) {
+  const labels = {
+    commercial: "Local",
+    corporate: "Corporativo",
+    cultural: "Cultural",
+    entertainment: "Entretenimiento",
+    infrastructure: "Infraestructura",
+    land: "Terreno",
+    public: "Publica",
+    residential: "Habitacional",
+    service: "Servicio"
+  };
+
+  return labels[type] || type;
+}
+
 export default async function GovernmentPage() {
   await requireGovernmentProfile("/government");
   const supabase = await createSupabaseServerClient();
+  const serviceSupabase = getSupabaseServiceClient();
 
   const { data: districts = [] } = await supabase
     .from("districts")
@@ -26,6 +51,23 @@ export default async function GovernmentPage() {
     .order("name", { ascending: true });
 
   const { data: properties = [] } = await supabase.from("properties").select("district_id");
+
+  const { data: propertyRows = [] } = await supabase
+    .from("properties")
+    .select("id, name, address, type, size_blocks, current_value, districts(name)")
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const { data: profiles = [] } = await serviceSupabase
+    .from("profiles")
+    .select("id, gamertag")
+    .order("gamertag", { ascending: true });
+
+  const { data: organizations = [] } = await serviceSupabase
+    .from("organizations")
+    .select("id, name, type")
+    .order("type", { ascending: true })
+    .order("name", { ascending: true });
 
   const propertyCountByDistrict = properties.reduce((counts, property) => {
     counts[property.district_id] = (counts[property.district_id] || 0) + 1;
@@ -47,6 +89,20 @@ export default async function GovernmentPage() {
       </Badge>
     ),
     description: district.description || "Sin descripcion"
+  }));
+
+  const propertyTableRows = propertyRows.map((property) => ({
+    id: property.id,
+    name: (
+      <div className={styles.districtName}>
+        <strong>{property.name}</strong>
+        <span>{property.address}</span>
+      </div>
+    ),
+    district: property.districts?.name || "Sin delegacion",
+    type: <Badge tone="info">{formatPropertyType(property.type)}</Badge>,
+    size: Number(property.size_blocks).toLocaleString("es-MX"),
+    value: formatMoney(property.current_value)
   }));
 
   return (
@@ -95,6 +151,15 @@ export default async function GovernmentPage() {
 
       <Card className={styles.card}>
         <SectionHeader
+          eyebrow="Propiedades"
+          title="Nueva propiedad"
+          description="El registro crea propiedad, propietario inicial y valoracion inicial en una sola operacion."
+        />
+        <PropertyForm districts={districts} organizations={organizations} profiles={profiles} />
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
           eyebrow="Directorio"
           title="Delegaciones registradas"
           description="Listado administrativo con conteo de propiedades por zona."
@@ -115,6 +180,33 @@ export default async function GovernmentPage() {
             description="Registra la primera delegacion para empezar a ubicar propiedades."
             icon={Landmark}
             title="Sin delegaciones"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Registro inmobiliario"
+          title="Propiedades recientes"
+          description="Listado administrativo de las ultimas propiedades registradas."
+        />
+        {propertyRows.length ? (
+          <Table
+            columns={[
+              { key: "name", label: "Propiedad" },
+              { key: "district", label: "Delegacion" },
+              { key: "type", label: "Tipo" },
+              { key: "size", label: "Bloques" },
+              { key: "value", label: "Valor" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={propertyTableRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando registres propiedades, apareceran aqui con su delegacion, tipo y valor actual."
+            icon={Building2}
+            title="Sin propiedades registradas"
           />
         )}
       </Card>

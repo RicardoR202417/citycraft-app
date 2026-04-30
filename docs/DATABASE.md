@@ -227,3 +227,22 @@ Notas de modelado:
   crear una fila nueva.
 - Las unidades privativas o interiores se representaran usando
   `parent_property_id`, pero su UI queda para un sprint posterior.
+
+## RPC de registro de propiedades
+
+Archivo:
+
+```text
+supabase/migrations/20260430100000_create_property_rpc.sql
+```
+
+La funcion `create_property_with_initial_owner` crea de forma atomica:
+
+- Una fila en `properties`.
+- El propietario inicial en `property_owners`.
+- La valoracion inicial en `property_valuations`.
+- Un evento de auditoria `property.created`.
+
+La funcion solo puede ejecutarse por usuarios autenticados que pertenezcan a la
+organizacion tipo `government`. La UI de gobierno debe usar esta RPC en lugar de
+insertar directamente en varias tablas para evitar estados parciales.
