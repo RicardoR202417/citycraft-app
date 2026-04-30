@@ -232,6 +232,30 @@ Reglas:
 - Los saldos no pueden ser negativos.
 - Los nuevos flujos economicos no deben actualizar saldo sin generar ledger.
 
+## Organizaciones privadas
+
+Archivo:
+
+```text
+supabase/migrations/20260430180000_private_organization_rpc.sql
+```
+
+Incluye:
+
+- RPC `create_private_organization`.
+- Creacion atomica de organizacion tipo `private`.
+- Alta del creador como `owner` inicial con `100%`.
+- Auditoria `organization.created`.
+- Wallet automatica mediante el trigger existente de `organizations`.
+
+Reglas:
+
+- Solo usuarios autenticados pueden crear organizaciones privadas.
+- El slug debe ser unico y normalizado.
+- La organizacion puede marcarse visible o privada mediante `is_public`.
+- La administracion fina de socios y porcentajes se entrega en historias
+  posteriores del epic de organizaciones.
+
 ## Ledger economico
 
 Archivo:

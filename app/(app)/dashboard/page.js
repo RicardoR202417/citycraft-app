@@ -55,6 +55,9 @@ export default async function DashboardPage() {
             <LinkButton href="/properties" icon={MapPinned} variant="secondary">
               Propiedades
             </LinkButton>
+            <LinkButton href="/organizations" icon={Building2} variant="secondary">
+              Organizaciones
+            </LinkButton>
             <LinkButton href="/economy" icon={WalletCards} variant="secondary">
               Economia
             </LinkButton>
