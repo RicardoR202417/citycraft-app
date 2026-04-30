@@ -170,7 +170,6 @@ Las siguientes tablas se agregaran por Epic/historia, no todas desde el inicio:
   - `property_owners` listo en `20260430090000_property_registry.sql`.
   - `property_valuations` listo en `20260430090000_property_registry.sql`.
 - Economia:
-  - `attendance_records`
   - `daily_payouts`
   - RPC de pago diario
 - Mercado:
@@ -258,6 +257,33 @@ Reglas:
   usaran RPCs especificas como pagos diarios, ajustes o cierres de mercado.
 - La pantalla privada `/economy` muestra el saldo del jugador y sus ultimos
   movimientos visibles segun RLS.
+
+## Asistencia diaria
+
+Archivo:
+
+```text
+supabase/migrations/20260430160000_attendance_foundation.sql
+```
+
+Incluye:
+
+- Tabla `attendance_records`.
+- Indices por jugador, fecha y actor de gobierno.
+- Politicas RLS para que cada jugador lea su propia asistencia y el gobierno
+  administre el registro.
+- RPC `record_attendance` para registrar una asistencia valida y generar
+  auditoria.
+
+Reglas:
+
+- La asistencia la registra manualmente el gobierno con base en la linea de
+  tiempo del Realm.
+- Una asistencia valida requiere minimo 30 minutos y maximo 1440.
+- Solo puede existir una asistencia por jugador y fecha real.
+- `record_attendance` todavia no genera pago; el pago se conecta mediante una
+  RPC atomica posterior para mantener el sprint incremental.
+- Cada asistencia genera un evento `attendance.recorded` en `audit_logs`.
 
 ## Registro inmobiliario base
 

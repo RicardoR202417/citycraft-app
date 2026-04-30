@@ -1,8 +1,9 @@
-import { ArrowLeft, Building2, Landmark, MapPinned } from "lucide-react";
+import { ArrowLeft, Building2, CalendarCheck, Landmark, MapPinned } from "lucide-react";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireGovernmentProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase/server";
+import { AttendanceForm } from "./AttendanceForm";
 import { DistrictForm } from "./DistrictForm";
 import { PropertyForm } from "./PropertyForm";
 import { ValuationForm } from "./ValuationForm";
@@ -42,6 +43,12 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function formatDay(value) {
+  return new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "medium"
+  }).format(new Date(`${value}T00:00:00`));
+}
+
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -76,6 +83,13 @@ export default async function GovernmentPage() {
     .order("created_at", { ascending: false })
     .limit(20);
 
+  const { data: attendanceData } = await supabase
+    .from("attendance_records")
+    .select("id, profile_id, recorded_by, attendance_date, minutes_played, is_valid, notes, created_at")
+    .order("attendance_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(20);
+
   const { data: profilesData } = await serviceSupabase
     .from("profiles")
     .select("id, gamertag")
@@ -92,9 +106,11 @@ export default async function GovernmentPage() {
   const propertyRows = asArray(propertyRowsData);
   const parentProperties = asArray(parentPropertiesData);
   const valuations = asArray(valuationsData);
+  const attendanceRecords = asArray(attendanceData);
   const profiles = asArray(profilesData);
   const organizations = asArray(organizationsData);
   const propertyNameById = new Map(properties.map((property) => [property.id, property.name]));
+  const profileNameById = new Map(profiles.map((profile) => [profile.id, profile.gamertag]));
 
   const unitCount = properties.filter((property) => property.parent_property_id).length;
   const matrixCount = properties.length - unitCount;
@@ -147,6 +163,16 @@ export default async function GovernmentPage() {
     value: formatMoney(valuation.value),
     reason: valuation.reason,
     createdAt: formatDate(valuation.created_at)
+  }));
+
+  const attendanceRows = attendanceRecords.map((record) => ({
+    id: record.id,
+    player: profileNameById.get(record.profile_id) || "Jugador no disponible",
+    day: formatDay(record.attendance_date),
+    minutes: `${record.minutes_played} min`,
+    status: <Badge tone={record.is_valid ? "success" : "warning"}>{record.is_valid ? "Valida" : "No valida"}</Badge>,
+    recordedBy: profileNameById.get(record.recorded_by) || "Gobierno",
+    notes: record.notes || "Sin notas"
   }));
 
   return (
@@ -219,6 +245,15 @@ export default async function GovernmentPage() {
           description="Cada ajuste crea un registro historico y actualiza el valor vigente de la propiedad."
         />
         <ValuationForm properties={propertyRows} />
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Asistencia"
+          title="Registrar asistencia diaria"
+          description="Marca jugadores con al menos 30 minutos registrados en la linea de tiempo del Realm."
+        />
+        <AttendanceForm profiles={profiles} />
       </Card>
 
       <Card className={styles.card}>
@@ -298,6 +333,34 @@ export default async function GovernmentPage() {
             description="Las propiedades nuevas ya generan una valoracion inicial; los cambios posteriores apareceran aqui."
             icon={Landmark}
             title="Sin valoraciones"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Asistencia"
+          title="Asistencias recientes"
+          description="Historial administrativo de asistencias validas registradas por el gobierno."
+        />
+        {attendanceRecords.length ? (
+          <Table
+            columns={[
+              { key: "player", label: "Jugador" },
+              { key: "day", label: "Fecha" },
+              { key: "minutes", label: "Tiempo" },
+              { key: "status", label: "Estado" },
+              { key: "recordedBy", label: "Registro" },
+              { key: "notes", label: "Notas" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={attendanceRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando marques asistencia de jugadores, el historial reciente aparecera aqui."
+            icon={CalendarCheck}
+            title="Sin asistencias registradas"
           />
         )}
       </Card>

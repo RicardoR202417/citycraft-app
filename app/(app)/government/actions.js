@@ -79,6 +79,26 @@ function friendlyValuationError(error) {
   return "No se pudo registrar la valoracion. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlyAttendanceError(error) {
+  if (!error?.message) {
+    return "No se pudo registrar la asistencia. Intenta nuevamente.";
+  }
+
+  if (error.code === "23505") {
+    return "Ese jugador ya tiene asistencia registrada para ese dia.";
+  }
+
+  if (error.code === "23514") {
+    return "La asistencia valida requiere minimo 30 minutos y maximo 1440.";
+  }
+
+  if (error.code === "42501") {
+    return "Solo el gobierno puede registrar asistencias.";
+  }
+
+  return "No se pudo registrar la asistencia. Revisa los datos e intenta nuevamente.";
+}
+
 export async function createDistrict(_previousState = DEFAULT_STATE, formData) {
   const profile = await requireGovernmentProfile("/government");
   const name = getField(formData, "name");
@@ -305,5 +325,56 @@ export async function recordPropertyValuation(_previousState = DEFAULT_STATE, fo
   return {
     error: "",
     message: "Valoracion registrada."
+  };
+}
+
+export async function recordAttendance(_previousState = DEFAULT_STATE, formData) {
+  await requireGovernmentProfile("/government");
+  const profileId = getField(formData, "profile_id");
+  const attendanceDate = getField(formData, "attendance_date");
+  const minutesPlayed = Number(getField(formData, "minutes_played"));
+  const notes = getField(formData, "notes");
+
+  if (!profileId) {
+    return {
+      error: "Selecciona un jugador.",
+      message: ""
+    };
+  }
+
+  if (!attendanceDate) {
+    return {
+      error: "Selecciona la fecha real de asistencia.",
+      message: ""
+    };
+  }
+
+  if (!Number.isInteger(minutesPlayed) || minutesPlayed < 30 || minutesPlayed > 1440) {
+    return {
+      error: "La asistencia valida requiere entre 30 y 1440 minutos.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("record_attendance", {
+    p_attendance_date: attendanceDate,
+    p_minutes_played: minutesPlayed,
+    p_notes: notes || null,
+    p_profile_id: profileId
+  });
+
+  if (error) {
+    return {
+      error: friendlyAttendanceError(error),
+      message: ""
+    };
+  }
+
+  revalidatePath("/government");
+
+  return {
+    error: "",
+    message: "Asistencia registrada. El pago se conectara en la siguiente historia."
   };
 }
