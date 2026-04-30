@@ -1,4 +1,5 @@
 import { ArrowLeft, Building2, LandPlot } from "lucide-react";
+import Link from "next/link";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireProfile } from "../../../lib/auth";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
@@ -44,7 +45,13 @@ export default async function OrganizationsPage() {
     id: membership.id,
     name: (
       <div className={styles.organizationName}>
-        <strong>{membership.organizations?.name || "Organizacion no disponible"}</strong>
+        {membership.organizations?.slug ? (
+          <Link href={`/organizations/${membership.organizations.slug}`}>
+            {membership.organizations.name || "Organizacion no disponible"}
+          </Link>
+        ) : (
+          <strong>Organizacion no disponible</strong>
+        )}
         <span>{membership.organizations?.slug || "sin-slug"}</span>
       </div>
     ),
@@ -59,7 +66,14 @@ export default async function OrganizationsPage() {
       </Badge>
     ),
     type: membership.organizations?.type === "government" ? "Gobierno" : "Privada",
-    joinedAt: formatDate(membership.joined_at)
+    joinedAt: formatDate(membership.joined_at),
+    detail: membership.organizations?.slug ? (
+      <Link className={styles.detailLink} href={`/organizations/${membership.organizations.slug}`}>
+        Ver
+      </Link>
+    ) : (
+      "No disponible"
+    )
   }));
 
   return (
@@ -120,7 +134,8 @@ export default async function OrganizationsPage() {
               { key: "ownership", label: "Participacion" },
               { key: "visibility", label: "Visibilidad" },
               { key: "type", label: "Tipo" },
-              { key: "joinedAt", label: "Desde" }
+              { key: "joinedAt", label: "Desde" },
+              { key: "detail", label: "Detalle" }
             ]}
             getRowKey={(row) => row.id}
             rows={rows}
