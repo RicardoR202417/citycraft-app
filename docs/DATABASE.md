@@ -256,6 +256,31 @@ Reglas:
 - La administracion fina de socios y porcentajes se entrega en historias
   posteriores del epic de organizaciones.
 
+## Participaciones de organizaciones
+
+Archivo:
+
+```text
+supabase/migrations/20260430190000_organization_member_shares.sql
+```
+
+Incluye:
+
+- Funcion `is_active_organization_member`.
+- Funcion `is_organization_admin`.
+- Politica RLS para leer membresias de organizaciones donde el jugador
+  pertenece activamente.
+- Trigger `organization_members_enforce_percent`.
+- RPC `update_organization_member_share`.
+
+Reglas:
+
+- La suma de `ownership_percent` de socios activos no puede superar 100%.
+- La organizacion debe conservar al menos un socio activo con rol `owner`.
+- Solo `owner` o `admin` de la organizacion pueden cambiar rol o porcentaje.
+- Cada cambio queda auditado como `organization.member_share_updated`.
+- Estos porcentajes son la base para el pago proporcional de organizaciones.
+
 ## Ledger economico
 
 Archivo:

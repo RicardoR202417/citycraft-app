@@ -3,7 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../../components/ui";
 import { requireProfile } from "../../../../lib/auth";
 import { formatMoney, formatWalletBalance } from "../../../../lib/economy";
-import { createSupabaseServerClient } from "../../../../lib/supabase/server";
+import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../../lib/supabase/server";
+import { MemberShareForm } from "./MemberShareForm";
 import styles from "./page.module.css";
 
 export const metadata = {
@@ -50,6 +51,7 @@ export default async function OrganizationDetailPage({ params }) {
   const profile = await requireProfile("/organizations");
   const { slug } = await params;
   const supabase = await createSupabaseServerClient();
+  const serviceSupabase = getSupabaseServiceClient();
 
   const { data: organization, error: organizationError } = await supabase
     .from("organizations")
@@ -99,11 +101,25 @@ export default async function OrganizationDetailPage({ params }) {
     throw new Error(`Could not load organization properties: ${propertiesError.message}`);
   }
 
+  const { data: memberRows = [], error: membersError } = await serviceSupabase
+    .from("organization_members")
+    .select("id, profile_id, role, ownership_percent, joined_at, profiles(gamertag, display_name)")
+    .eq("organization_id", organization.id)
+    .eq("is_active", true)
+    .order("ownership_percent", { ascending: false })
+    .order("joined_at", { ascending: true });
+
+  if (membersError) {
+    throw new Error(`Could not load organization members: ${membersError.message}`);
+  }
+
   const portfolioValue = propertyOwners.reduce((total, owner) => {
     const propertyValue = Number(owner.properties?.current_value || 0);
     const ownership = Number(owner.ownership_percent || 0) / 100;
     return total + propertyValue * ownership;
   }, 0);
+  const canManageMembers = ["owner", "admin"].includes(membership.role);
+  const assignedPercent = memberRows.reduce((total, member) => total + Number(member.ownership_percent || 0), 0);
 
   const participationItems = [
     { label: "Rol", value: formatRole(membership.role) },
@@ -135,6 +151,27 @@ export default async function OrganizationDetailPage({ params }) {
     })}%`,
     value: formatMoney(owner.properties?.current_value || 0),
     organizationValue: formatMoney(Number(owner.properties?.current_value || 0) * (Number(owner.ownership_percent || 0) / 100))
+  }));
+
+  const memberTableRows = memberRows.map((member) => ({
+    id: member.id,
+    player: (
+      <div className={styles.propertyName}>
+        <strong>{member.profiles?.display_name || member.profiles?.gamertag || "Jugador no disponible"}</strong>
+        <span>{member.profiles?.gamertag || "Sin gamertag"}</span>
+      </div>
+    ),
+    role: <Badge tone={member.role === "owner" ? "success" : member.role === "admin" ? "info" : "neutral"}>{formatRole(member.role)}</Badge>,
+    ownership: `${Number(member.ownership_percent || 0).toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}%`,
+    joinedAt: formatDate(member.joined_at),
+    management: canManageMembers ? (
+      <MemberShareForm membership={member} organizationSlug={organization.slug} />
+    ) : (
+      "Solo lectura"
+    )
   }));
 
   return (
@@ -182,9 +219,44 @@ export default async function OrganizationDetailPage({ params }) {
               <strong>{propertyOwners.length}</strong>
               <span>Propiedades asociadas</span>
             </article>
+            <article>
+              <Building2 size={20} />
+              <strong>{assignedPercent.toLocaleString("es-MX", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              })}%</strong>
+              <span>Participacion asignada</span>
+            </article>
           </div>
         </Card>
       </section>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Socios"
+          title="Participaciones de la organizacion"
+          description="Los porcentajes activos no pueden superar 100%. Estos porcentajes se usaran para pagos proporcionales por asistencia."
+        />
+        {memberTableRows.length ? (
+          <Table
+            columns={[
+              { key: "player", label: "Jugador" },
+              { key: "role", label: "Rol" },
+              { key: "ownership", label: "Participacion" },
+              { key: "joinedAt", label: "Desde" },
+              { key: "management", label: canManageMembers ? "Administrar" : "Estado" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={memberTableRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando existan socios activos, apareceran aqui con su rol y participacion."
+            icon={Building2}
+            title="Sin socios activos"
+          />
+        )}
+      </Card>
 
       <Card className={styles.card}>
         <SectionHeader

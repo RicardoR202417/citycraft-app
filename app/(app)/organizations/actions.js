@@ -43,6 +43,22 @@ function friendlyOrganizationError(error) {
   return "No se pudo crear la organizacion. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlyMemberShareError(error) {
+  if (!error?.message) {
+    return "No se pudo actualizar el socio. Intenta nuevamente.";
+  }
+
+  if (error.code === "23514") {
+    return "La suma de porcentajes activos no puede superar 100% y debe existir al menos un propietario.";
+  }
+
+  if (error.code === "42501") {
+    return "Solo propietarios o administradores de la organizacion pueden modificar porcentajes.";
+  }
+
+  return "No se pudo actualizar el socio. Revisa los datos e intenta nuevamente.";
+}
+
 export async function createPrivateOrganization(_previousState = DEFAULT_STATE, formData) {
   await requireProfile("/organizations");
   const name = getField(formData, "name");
@@ -94,5 +110,60 @@ export async function createPrivateOrganization(_previousState = DEFAULT_STATE, 
   return {
     error: "",
     message: "Organizacion creada. Quedaste como propietario inicial con 100%."
+  };
+}
+
+export async function updateOrganizationMemberShare(_previousState = DEFAULT_STATE, formData) {
+  await requireProfile("/organizations");
+  const membershipId = getField(formData, "membership_id");
+  const organizationSlug = getField(formData, "organization_slug");
+  const role = getField(formData, "role");
+  const ownershipPercent = Number(getField(formData, "ownership_percent"));
+  const validRoles = new Set(["owner", "admin", "member"]);
+
+  if (!membershipId) {
+    return {
+      error: "No se encontro la membresia a actualizar.",
+      message: ""
+    };
+  }
+
+  if (!validRoles.has(role)) {
+    return {
+      error: "Selecciona un rol valido.",
+      message: ""
+    };
+  }
+
+  if (!Number.isFinite(ownershipPercent) || ownershipPercent < 0 || ownershipPercent > 100) {
+    return {
+      error: "El porcentaje debe estar entre 0 y 100.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("update_organization_member_share", {
+    p_membership_id: membershipId,
+    p_ownership_percent: ownershipPercent,
+    p_role: role
+  });
+
+  if (error) {
+    return {
+      error: friendlyMemberShareError(error),
+      message: ""
+    };
+  }
+
+  revalidatePath("/organizations");
+
+  if (organizationSlug) {
+    revalidatePath(`/organizations/${organizationSlug}`);
+  }
+
+  return {
+    error: "",
+    message: "Participacion actualizada."
   };
 }
