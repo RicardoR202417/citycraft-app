@@ -44,3 +44,4 @@ Documentos de trabajo:
 - [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md): direccion visual, componentes y buenas practicas de estilos.
 - [`docs/DATABASE.md`](./docs/DATABASE.md): Supabase, migraciones, RLS y reglas de seguridad.
 - [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md): flujo Git/Jira, ramas, PRs y convenciones de desarrollo.
+- [`docs/VERCEL.md`](./docs/VERCEL.md): deploy, variables de entorno y configuracion de Vercel.
