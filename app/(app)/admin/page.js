@@ -151,6 +151,9 @@ export default async function AdminPage() {
             <LinkButton href="/admin/players" icon={UsersRound} variant="secondary">
               Jugadores
             </LinkButton>
+            <LinkButton href="/admin/organizations" icon={Building2} variant="secondary">
+              Organizaciones
+            </LinkButton>
             <LinkButton href="/properties" icon={Landmark} variant="secondary">
               Propiedades
             </LinkButton>

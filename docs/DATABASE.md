@@ -280,6 +280,9 @@ Reglas:
 - Solo `owner` o `admin` de la organizacion pueden cambiar rol o porcentaje.
 - Cada cambio queda auditado como `organization.member_share_updated`.
 - Estos porcentajes son la base para el pago proporcional de organizaciones.
+- El administrador global puede corregir miembros desde `/admin/organizations`
+  usando acciones de servidor con `service_role`, pero cada cambio debe generar
+  auditoria `admin.organization_member_*`.
 
 ## Ledger economico
 
