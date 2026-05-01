@@ -22,6 +22,8 @@ mantenimiento tecnico y operativo de CityCraft App.
 - Registra delegaciones, propiedades, valoraciones, asistencias, multas y
   operaciones de gobierno cuando esos modulos existan.
 - Sus datos deben ser transparentes para los jugadores.
+- Su vista publica vive en `/transparency/government` y expone perfil, wallet,
+  propiedades, movimientos permitidos y acciones recientes sin requerir login.
 
 ### Jugadores y organizaciones
 
@@ -151,6 +153,7 @@ Implementado:
   porcentajes sin sustituir el flujo de valoraciones del gobierno.
 - Seccion `/admin/audit` para consultar `audit_logs`, revisar `ledger_entries`
   y revertir acreditaciones mediante movimientos compensatorios.
+- Vista publica `/transparency/government` para transparencia del gobierno.
 
 Pendiente:
 

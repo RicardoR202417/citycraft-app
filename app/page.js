@@ -1,3 +1,4 @@
+import Link from "next/link";
 import styles from "./page.module.css";
 
 const modules = [
@@ -18,11 +19,15 @@ export default function Home() {
         <div className={styles.heroText}>
           <p className={styles.kicker}>Minecraft Bedrock Realm</p>
           <h1>CityCraft App</h1>
-          <p>
+          <p className={styles.heroDescription}>
             Plataforma open source para mostrar la ciudad, administrar
             propiedades ficticias, registrar asistencias y dar vida a una
             economia creativa entre jugadores.
           </p>
+          <div className={styles.heroActions}>
+            <Link href="/transparency/government">Ver gobierno</Link>
+            <Link href="/login">Iniciar sesion</Link>
+          </div>
         </div>
 
         <div className={styles.panel} aria-label="Resumen del sistema">

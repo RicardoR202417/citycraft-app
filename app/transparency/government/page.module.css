@@ -1,0 +1,93 @@
+.page {
+  display: grid;
+  gap: 22px;
+  min-height: 100vh;
+  padding: var(--space-page);
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.62fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.card,
+.balanceCard,
+.noteCard {
+  padding: clamp(18px, 3vw, 26px);
+}
+
+.card > * + *,
+.noteCard > * + * {
+  margin-top: 18px;
+}
+
+.balanceCard {
+  display: grid;
+  align-content: end;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.balanceCard svg {
+  color: var(--accent);
+}
+
+.balanceCard strong {
+  color: var(--accent-strong);
+  font-size: clamp(2.1rem, 6vw, 4rem);
+  line-height: 1;
+}
+
+.balanceCard > span,
+.flow,
+.nameCell span,
+.note {
+  color: var(--muted);
+}
+
+.flow {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  font-size: 0.92rem;
+}
+
+.nameCell {
+  display: grid;
+  gap: 2px;
+}
+
+.nameCell strong,
+.nameCell span {
+  display: block;
+}
+
+.note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  padding: 12px;
+  line-height: 1.45;
+}
+
+.note svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+@media (max-width: 940px) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+  }
+}
