@@ -284,6 +284,39 @@ Reglas:
   usando acciones de servidor con `service_role`, pero cada cambio debe generar
   auditoria `admin.organization_member_*`.
 
+## Patrimonio inicial de organizaciones
+
+Archivo:
+
+```text
+supabase/migrations/20260430200000_organization_market_value.sql
+```
+
+Incluye:
+
+- RPC `calculate_organization_market_value`.
+- Calculo centralizado del patrimonio inicial de una organizacion.
+- Validacion de acceso para miembros activos, administrador global o
+  `service_role`.
+
+Formula v1:
+
+```text
+patrimonio = saldo_wallet + valor_propiedades_proporcional + ajuste_estabilidad + ajuste_actividad
+```
+
+Reglas:
+
+- `saldo_wallet` se toma de la wallet de la organizacion.
+- `valor_propiedades_proporcional` suma solo propiedades activas donde la
+  organizacion sea propietaria directa, respetando su porcentaje.
+- `ajuste_estabilidad` y `ajuste_actividad` inician en `0` para preparar el
+  calculo futuro de estabilidad economica, actividad de socios y plusvalia.
+- La respuesta incluye `formula_version` para poder evolucionar el calculo sin
+  perder trazabilidad.
+- El perfil de organizacion y el panel admin consumen esta RPC para evitar
+  formulas duplicadas en la interfaz.
+
 ## Ledger economico
 
 Archivo:

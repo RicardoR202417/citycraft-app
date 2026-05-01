@@ -89,6 +89,14 @@ export default async function OrganizationDetailPage({ params }) {
     .eq("owner_organization_id", organization.id)
     .maybeSingle();
 
+  const { data: marketValue = {}, error: marketValueError } = await supabase.rpc("calculate_organization_market_value", {
+    p_organization_id: organization.id
+  });
+
+  if (marketValueError) {
+    throw new Error(`Could not load organization market value: ${marketValueError.message}`);
+  }
+
   const { data: propertyOwners = [], error: propertiesError } = await supabase
     .from("property_owners")
     .select(
@@ -103,7 +111,7 @@ export default async function OrganizationDetailPage({ params }) {
 
   const { data: memberRows = [], error: membersError } = await serviceSupabase
     .from("organization_members")
-    .select("id, profile_id, role, ownership_percent, joined_at, profiles(gamertag, display_name)")
+    .select("id, profile_id, role, ownership_percent, joined_at, profiles!organization_members_profile_id_fkey(gamertag, display_name)")
     .eq("organization_id", organization.id)
     .eq("is_active", true)
     .order("ownership_percent", { ascending: false })
@@ -113,13 +121,10 @@ export default async function OrganizationDetailPage({ params }) {
     throw new Error(`Could not load organization members: ${membersError.message}`);
   }
 
-  const portfolioValue = propertyOwners.reduce((total, owner) => {
-    const propertyValue = Number(owner.properties?.current_value || 0);
-    const ownership = Number(owner.ownership_percent || 0) / 100;
-    return total + propertyValue * ownership;
-  }, 0);
+  const portfolioValue = Number(marketValue.property_value || 0);
   const canManageMembers = ["owner", "admin"].includes(membership.role);
   const assignedPercent = memberRows.reduce((total, member) => total + Number(member.ownership_percent || 0), 0);
+  const walletCurrency = wallet?.currency_symbol;
 
   const participationItems = [
     { label: "Rol", value: formatRole(membership.role) },
@@ -200,24 +205,29 @@ export default async function OrganizationDetailPage({ params }) {
         <Card className={styles.card}>
           <SectionHeader
             eyebrow="Economia"
-            title="Wallet y patrimonio"
-            description="Lectura rapida del saldo y valor inmobiliario asignado a la organizacion."
+            title="Patrimonio inicial"
+            description="Calculo centralizado con wallet, valor inmobiliario proporcional y ajustes futuros."
           />
           <div className={styles.balance}>
             <WalletCards size={24} />
-            <strong>{formatWalletBalance(wallet)}</strong>
-            <span>Wallet de organizacion</span>
+            <strong>{formatMoney(marketValue.market_value || 0, walletCurrency)}</strong>
+            <span>Patrimonio estimado de la organizacion</span>
           </div>
           <div className={styles.stats}>
             <article>
+              <WalletCards size={20} />
+              <strong>{formatWalletBalance(wallet)}</strong>
+              <span>Saldo en wallet</span>
+            </article>
+            <article>
               <LandPlot size={20} />
-              <strong>{formatMoney(portfolioValue)}</strong>
+              <strong>{formatMoney(portfolioValue, walletCurrency)}</strong>
               <span>Valor inmobiliario proporcional</span>
             </article>
             <article>
               <Building2 size={20} />
-              <strong>{propertyOwners.length}</strong>
-              <span>Propiedades asociadas</span>
+              <strong>{Number(marketValue.property_count || propertyOwners.length)}</strong>
+              <span>Propiedades activas asociadas</span>
             </article>
             <article>
               <Building2 size={20} />
@@ -226,6 +236,11 @@ export default async function OrganizationDetailPage({ params }) {
                 maximumFractionDigits: 2
               })}%</strong>
               <span>Participacion asignada</span>
+            </article>
+            <article>
+              <Building2 size={20} />
+              <strong>{formatMoney(Number(marketValue.stability_adjustment || 0) + Number(marketValue.activity_adjustment || 0), walletCurrency)}</strong>
+              <span>Ajustes por estabilidad y actividad</span>
             </article>
           </div>
         </Card>

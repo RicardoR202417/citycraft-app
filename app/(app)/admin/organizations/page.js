@@ -1,7 +1,7 @@
 import { ArrowLeft, Building2, UsersRound, WalletCards } from "lucide-react";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../../components/ui";
 import { requireGlobalAdminProfile } from "../../../../lib/auth";
-import { formatWalletBalance } from "../../../../lib/economy";
+import { formatMoney, formatWalletBalance } from "../../../../lib/economy";
 import { getSupabaseServiceClient } from "../../../../lib/supabase/server";
 import {
   AddOrganizationMemberForm,
@@ -48,6 +48,23 @@ export default async function AdminOrganizationsPage() {
       .order("gamertag", { ascending: true })
   ]);
 
+  const marketValueResults = await Promise.all(
+    organizations.map((organization) =>
+      serviceSupabase.rpc("calculate_organization_market_value", {
+        p_organization_id: organization.id
+      })
+    )
+  );
+  const marketValueError = marketValueResults.find((result) => result.error)?.error;
+
+  if (marketValueError) {
+    throw new Error(`Could not load organization market values: ${marketValueError.message}`);
+  }
+
+  const marketValuesByOrganization = new Map(
+    organizations.map((organization, index) => [organization.id, marketValueResults[index].data || {}])
+  );
+
   return (
     <main className={styles.page}>
       <PageHeader
@@ -65,12 +82,16 @@ export default async function AdminOrganizationsPage() {
         <section className={styles.organizations}>
           {organizations.map((organization) => {
             const wallet = Array.isArray(organization.wallets) ? organization.wallets[0] : organization.wallets;
+            const marketValue = marketValuesByOrganization.get(organization.id) || {};
             const members = (organization.organization_members || []).filter((member) => member.is_active);
             const assignedPercent = members.reduce((total, member) => total + Number(member.ownership_percent || 0), 0);
             const summaryItems = [
               { label: "Slug", value: organization.slug },
               { label: "Alta", value: formatDate(organization.created_at) },
+              { label: "Patrimonio", value: formatMoney(marketValue.market_value || 0, wallet?.currency_symbol) },
               { label: "Wallet", value: formatWalletBalance(wallet) },
+              { label: "Valor propiedades", value: formatMoney(marketValue.property_value || 0, wallet?.currency_symbol) },
+              { label: "Propiedades activas", value: Number(marketValue.property_count || 0).toLocaleString("es-MX") },
               {
                 label: "Participacion asignada",
                 value: `${assignedPercent.toLocaleString("es-MX", {
