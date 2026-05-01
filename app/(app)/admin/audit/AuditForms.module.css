@@ -1,0 +1,48 @@
+.form {
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+}
+
+.form label {
+  display: grid;
+  gap: 6px;
+  color: var(--foreground);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.form input {
+  min-height: 36px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--foreground);
+  padding: 0 10px;
+  font: inherit;
+}
+
+.form input:focus {
+  border-color: var(--accent);
+  outline: 0;
+}
+
+.error,
+.message {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.error {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+
+.message {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+}

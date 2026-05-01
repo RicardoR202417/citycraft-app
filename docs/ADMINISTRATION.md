@@ -149,8 +149,11 @@ Implementado:
 - Seccion `/admin/organizations` para corregir socios, roles y porcentajes.
 - Seccion `/admin/properties` para corregir propiedades, propietarios y
   porcentajes sin sustituir el flujo de valoraciones del gobierno.
+- Seccion `/admin/audit` para consultar `audit_logs`, revisar `ledger_entries`
+  y revertir acreditaciones mediante movimientos compensatorios.
 
 Pendiente:
 
 - Seleccionar y registrar el administrador global activo.
-- Reversiones economicas cuando exista ledger completo.
+- Reglas especificas de reversion para ventas, subastas y transferencias
+  complejas cuando esos modulos existan.
