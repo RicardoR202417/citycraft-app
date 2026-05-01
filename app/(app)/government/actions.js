@@ -144,10 +144,31 @@ function friendlyPermitDecisionError(error) {
   return "No se pudo decidir la solicitud. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlyFineError(error) {
+  if (!error?.message) {
+    return "No se pudo aplicar la multa. Intenta nuevamente.";
+  }
+
+  if (error.code === "23503") {
+    return "El destinatario, wallet o gobierno no existe.";
+  }
+
+  if (error.code === "23514") {
+    return "Revisa destinatario, monto y razon de la multa.";
+  }
+
+  if (error.code === "42501") {
+    return "Solo el gobierno puede aplicar multas.";
+  }
+
+  return "No se pudo aplicar la multa. Revisa los datos e intenta nuevamente.";
+}
+
 function revalidateGovernmentPaths() {
   revalidatePath("/government");
   revalidatePath("/properties");
   revalidatePath("/transparency/government");
+  revalidatePath("/economy");
 }
 
 export async function createDistrict(_previousState = DEFAULT_STATE, formData) {
@@ -633,5 +654,72 @@ export async function decidePropertyPermitRequest(_previousState = DEFAULT_STATE
   return {
     error: "",
     message: decision === "approved" ? "Solicitud aprobada y aplicada." : "Solicitud rechazada."
+  };
+}
+
+export async function applyGovernmentFine(_previousState = DEFAULT_STATE, formData) {
+  await requireGovernmentProfile("/government");
+  const targetType = getField(formData, "target_type");
+  const targetProfileId = getField(formData, "target_profile_id");
+  const targetOrganizationId = getField(formData, "target_organization_id");
+  const amount = Number(getField(formData, "amount"));
+  const reason = getField(formData, "reason");
+
+  if (targetType !== "profile" && targetType !== "organization") {
+    return {
+      error: "Selecciona si la multa es para jugador u organizacion.",
+      message: ""
+    };
+  }
+
+  if (targetType === "profile" && !targetProfileId) {
+    return {
+      error: "Selecciona el jugador a multar.",
+      message: ""
+    };
+  }
+
+  if (targetType === "organization" && !targetOrganizationId) {
+    return {
+      error: "Selecciona la organizacion a multar.",
+      message: ""
+    };
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return {
+      error: "El monto debe ser mayor a 0.",
+      message: ""
+    };
+  }
+
+  if (reason.length < 3 || reason.length > 1000) {
+    return {
+      error: "La razon debe tener entre 3 y 1000 caracteres.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("apply_government_fine", {
+    p_amount: amount,
+    p_reason: reason,
+    p_target_organization_id: targetType === "organization" ? targetOrganizationId : null,
+    p_target_profile_id: targetType === "profile" ? targetProfileId : null,
+    p_target_type: targetType
+  });
+
+  if (error) {
+    return {
+      error: friendlyFineError(error),
+      message: ""
+    };
+  }
+
+  revalidateGovernmentPaths();
+
+  return {
+    error: "",
+    message: "Multa aplicada. Si habia saldo suficiente se cobro; si no, quedo como adeudo."
   };
 }

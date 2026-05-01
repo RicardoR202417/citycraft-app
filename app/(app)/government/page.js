@@ -1,10 +1,11 @@
-import { ArrowLeft, Building2, CalendarCheck, ClipboardCheck, Landmark, LandPlot, MapPinned } from "lucide-react";
+import { ArrowLeft, Building2, CalendarCheck, ClipboardCheck, Landmark, LandPlot, MapPinned, Scale } from "lucide-react";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireGovernmentProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase/server";
 import { AttendanceForm } from "./AttendanceForm";
 import { DistrictForm } from "./DistrictForm";
+import { FineForm } from "./FineForm";
 import { PermitDecisionForm } from "./PermitDecisionForm";
 import { PropertyForm } from "./PropertyForm";
 import { UnownedLandDispositionForm, UnownedLandForm } from "./UnownedLandForms";
@@ -121,6 +122,24 @@ function getPermitStatusTone(status) {
   return tones[status] || "neutral";
 }
 
+function formatFineStatus(status) {
+  const labels = {
+    debt: "Adeudo",
+    paid: "Cobrada"
+  };
+
+  return labels[status] || status;
+}
+
+function getFineStatusTone(status) {
+  const tones = {
+    debt: "warning",
+    paid: "success"
+  };
+
+  return tones[status] || "neutral";
+}
+
 function formatDate(value) {
   return new Intl.DateTimeFormat("es-MX", {
     dateStyle: "medium",
@@ -210,6 +229,14 @@ export default async function GovernmentPage() {
     .order("created_at", { ascending: false })
     .limit(30);
 
+  const { data: finesData } = await serviceSupabase
+    .from("government_fines")
+    .select(
+      "id, target_type, amount, paid_amount, outstanding_amount, status, reason, created_at, ledger_entry_id, profiles!government_fines_target_profile_id_fkey(gamertag, display_name), organizations!government_fines_target_organization_id_fkey(name, type)"
+    )
+    .order("created_at", { ascending: false })
+    .limit(30);
+
   const { data: profilesData } = await serviceSupabase
     .from("profiles")
     .select("id, gamertag")
@@ -231,8 +258,10 @@ export default async function GovernmentPage() {
   const dailyPayouts = asArray(payoutsData);
   const organizationPayouts = asArray(organizationPayoutsData);
   const permitRequests = asArray(permitRequestsData);
+  const fines = asArray(finesData);
   const profiles = asArray(profilesData);
   const organizations = asArray(organizationsData);
+  const fineTargetOrganizations = organizations.filter((organization) => organization.type !== "government");
   const propertyNameById = new Map(properties.map((property) => [property.id, property.name]));
   const profileNameById = new Map(profiles.map((profile) => [profile.id, profile.gamertag]));
 
@@ -242,6 +271,9 @@ export default async function GovernmentPage() {
     ["for_sale", "for_auction"].includes(land.government_disposition)
   ).length;
   const pendingPermitCount = permitRequests.filter((request) => request.status === "pending").length;
+  const debtFineTotal = fines
+    .filter((fine) => fine.status === "debt")
+    .reduce((total, fine) => total + Number(fine.outstanding_amount || 0), 0);
 
   const propertyCountByDistrict = properties.reduce((counts, property) => {
     counts[property.district_id] = (counts[property.district_id] || 0) + 1;
@@ -384,6 +416,34 @@ export default async function GovernmentPage() {
     decision: request.status === "pending" ? <PermitDecisionForm request={request} /> : formatDate(request.decided_at)
   }));
 
+  const fineRows = fines.map((fine) => {
+    const target =
+      fine.target_type === "profile"
+        ? fine.profiles?.display_name || fine.profiles?.gamertag || "Jugador no disponible"
+        : fine.organizations?.name || "Organizacion no disponible";
+
+    return {
+      id: fine.id,
+      target: (
+        <div className={styles.districtName}>
+          <strong>{target}</strong>
+          <span>{fine.target_type === "profile" ? "Jugador" : "Organizacion"}</span>
+        </div>
+      ),
+      status: <Badge tone={getFineStatusTone(fine.status)}>{formatFineStatus(fine.status)}</Badge>,
+      amount: formatMoney(fine.amount),
+      paid: formatMoney(fine.paid_amount),
+      debt: formatMoney(fine.outstanding_amount),
+      reason: fine.reason,
+      ledger: (
+        <Badge tone={fine.ledger_entry_id ? "success" : "warning"}>
+          {fine.ledger_entry_id ? "Con ledger" : "Adeudo sin cobro"}
+        </Badge>
+      ),
+      createdAt: formatDate(fine.created_at)
+    };
+  });
+
   return (
     <main className={styles.page}>
       <PageHeader
@@ -444,6 +504,11 @@ export default async function GovernmentPage() {
               <strong>{pendingPermitCount}</strong>
               <span>Permisos pendientes</span>
             </article>
+            <article>
+              <Scale size={20} />
+              <strong>{formatMoney(debtFineTotal)}</strong>
+              <span>Adeudos por multas</span>
+            </article>
           </div>
         </Card>
       </section>
@@ -487,6 +552,15 @@ export default async function GovernmentPage() {
           description="Marca jugadores con al menos 30 minutos registrados en la linea de tiempo del Realm."
         />
         <AttendanceForm profiles={profiles} />
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Multas"
+          title="Aplicar multa"
+          description="El gobierno puede multar jugadores u organizaciones. Si hay saldo suficiente, se cobra y se transfiere al gobierno; si no, queda como adeudo."
+        />
+        <FineForm organizations={fineTargetOrganizations} profiles={profiles} />
       </Card>
 
       <Card className={styles.card}>
@@ -600,6 +674,36 @@ export default async function GovernmentPage() {
             description="Cuando un jugador solicite construir, modificar o demoler una propiedad, aparecera aqui."
             icon={ClipboardCheck}
             title="Sin solicitudes de permiso"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Multas"
+          title="Multas recientes"
+          description="Historial de multas aplicadas por el gobierno, con cobro inmediato o adeudo por saldo insuficiente."
+        />
+        {fineRows.length ? (
+          <Table
+            columns={[
+              { key: "target", label: "Destinatario" },
+              { key: "status", label: "Estado" },
+              { key: "amount", label: "Monto" },
+              { key: "paid", label: "Cobrado" },
+              { key: "debt", label: "Adeudo" },
+              { key: "reason", label: "Razon" },
+              { key: "ledger", label: "Ledger" },
+              { key: "createdAt", label: "Fecha" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={fineRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando el gobierno aplique multas, apareceran aqui con su estado economico."
+            icon={Scale}
+            title="Sin multas registradas"
           />
         )}
       </Card>

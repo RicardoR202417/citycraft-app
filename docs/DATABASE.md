@@ -512,3 +512,27 @@ valoracion para una propiedad. En la misma transaccion:
 
 Las filas historicas no se editan desde la UI comun; cada ajuste de valor debe
 crear una nueva valoracion para mantener trazabilidad.
+
+## Multas gubernamentales
+
+Archivo:
+
+```text
+supabase/migrations/20260430250000_government_fines.sql
+```
+
+Incluye:
+
+- Tabla `government_fines` para multas a jugadores u organizaciones.
+- Tabla base `notifications` para avisos importantes del sistema.
+- Tipo de ledger `government_fine`.
+- RPC `apply_government_fine`.
+
+Reglas:
+
+- Solo miembros del gobierno pueden aplicar multas.
+- La multa requiere destinatario, monto y razon.
+- Si el destinatario tiene saldo suficiente, se transfiere dinero al gobierno y
+  se crea `ledger_entries`.
+- Si no hay saldo suficiente, la multa queda como `debt` sin mover dinero.
+- En ambos casos se crea notificacion y auditoria `government.fine_applied`.
