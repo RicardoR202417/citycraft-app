@@ -146,10 +146,11 @@ Implementado:
 - Guardia backend.
 - Panel `/admin`.
 - Seccion `/admin/players` para correccion inicial de perfiles.
+- Seccion `/admin/organizations` para corregir socios, roles y porcentajes.
+- Seccion `/admin/properties` para corregir propiedades, propietarios y
+  porcentajes sin sustituir el flujo de valoraciones del gobierno.
 
 Pendiente:
 
 - Seleccionar y registrar el administrador global activo.
-- Gestion avanzada de organizaciones.
-- Gestion avanzada de propiedades.
 - Reversiones economicas cuando exista ledger completo.

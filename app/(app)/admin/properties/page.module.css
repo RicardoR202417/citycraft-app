@@ -1,0 +1,108 @@
+.page {
+  display: grid;
+  gap: 22px;
+  min-height: 100vh;
+  padding: var(--space-page);
+}
+
+.properties {
+  display: grid;
+  gap: 18px;
+}
+
+.propertyCard,
+.emptyCard,
+.noteCard {
+  padding: clamp(18px, 3vw, 26px);
+}
+
+.propertyCard > * + *,
+.noteCard > * + * {
+  margin-top: 18px;
+}
+
+.propertyHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.propertyHeader span,
+.note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.propertyHeader svg,
+.note svg {
+  color: var(--accent);
+}
+
+.propertyHeader h2 {
+  margin: 6px 0 0;
+  color: var(--foreground);
+  font-size: clamp(1.35rem, 4vw, 2rem);
+  line-height: 1.08;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.propertyGrid,
+.managementGrid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.propertyGrid > div,
+.managementGrid > div,
+.valuationsBlock {
+  display: grid;
+  gap: 16px;
+}
+
+.nameCell {
+  display: grid;
+  gap: 2px;
+}
+
+.nameCell strong,
+.nameCell span {
+  display: block;
+}
+
+.nameCell span {
+  color: var(--muted);
+}
+
+.note {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  padding: 12px;
+  text-transform: none;
+}
+
+@media (max-width: 980px) {
+  .propertyGrid,
+  .managementGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .badges {
+    justify-content: flex-start;
+  }
+}

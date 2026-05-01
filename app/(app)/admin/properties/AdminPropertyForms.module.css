@@ -1,0 +1,111 @@
+.form,
+.inlineForm,
+.removeForm {
+  display: grid;
+  gap: 10px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.form label,
+.inlineForm label {
+  display: grid;
+  gap: 6px;
+  color: var(--foreground);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.form input,
+.form select,
+.form textarea,
+.inlineForm input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--foreground);
+  padding: 0 10px;
+  font: inherit;
+}
+
+.form input,
+.form select,
+.inlineForm input {
+  min-height: 36px;
+}
+
+.form textarea {
+  min-height: 88px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.form input:focus,
+.form select:focus,
+.form textarea:focus,
+.inlineForm input:focus {
+  border-color: var(--accent);
+  outline: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.inlineForm {
+  grid-template-columns: minmax(86px, 1fr) auto;
+  align-items: end;
+}
+
+.error,
+.message,
+.inlineError,
+.inlineMessage {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  line-height: 1.4;
+}
+
+.error,
+.message {
+  padding: 10px 12px;
+}
+
+.inlineError,
+.inlineMessage {
+  grid-column: 1 / -1;
+  padding: 8px 10px;
+  font-size: 0.84rem;
+}
+
+.error,
+.inlineError {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+
+.message,
+.inlineMessage {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+}
+
+@media (max-width: 860px) {
+  .fields,
+  .inlineForm {
+    grid-template-columns: 1fr;
+  }
+
+  .actions,
+  .actions button,
+  .inlineForm button,
+  .removeForm button {
+    width: 100%;
+  }
+}

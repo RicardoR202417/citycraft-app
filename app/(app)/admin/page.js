@@ -154,7 +154,7 @@ export default async function AdminPage() {
             <LinkButton href="/admin/organizations" icon={Building2} variant="secondary">
               Organizaciones
             </LinkButton>
-            <LinkButton href="/properties" icon={Landmark} variant="secondary">
+            <LinkButton href="/admin/properties" icon={Landmark} variant="secondary">
               Propiedades
             </LinkButton>
             <LinkButton href="/government" icon={Building2} variant="secondary">
