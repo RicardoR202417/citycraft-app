@@ -104,6 +104,15 @@ export default async function GovernmentPage() {
     .order("created_at", { ascending: false })
     .limit(20);
 
+  const { data: organizationPayoutsData } = await supabase
+    .from("organization_daily_payouts")
+    .select(
+      "id, organization_id, profile_id, payout_date, gross_property_value, payout_rate, attendance_ownership_percent, payout_amount, ledger_entry_id, organizations(name), profiles!organization_daily_payouts_profile_id_fkey(gamertag)"
+    )
+    .order("payout_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(20);
+
   const { data: profilesData } = await serviceSupabase
     .from("profiles")
     .select("id, gamertag")
@@ -122,6 +131,7 @@ export default async function GovernmentPage() {
   const valuations = asArray(valuationsData);
   const attendanceRecords = asArray(attendanceData);
   const dailyPayouts = asArray(payoutsData);
+  const organizationPayouts = asArray(organizationPayoutsData);
   const profiles = asArray(profilesData);
   const organizations = asArray(organizationsData);
   const propertyNameById = new Map(properties.map((property) => [property.id, property.name]));
@@ -196,6 +206,25 @@ export default async function GovernmentPage() {
     day: formatDay(payout.payout_date),
     grossValue: formatMoney(payout.gross_property_value),
     rate: formatPayoutRate(payout.payout_rate),
+    amount: formatMoney(payout.payout_amount),
+    ledger: (
+      <Badge tone={payout.ledger_entry_id ? "success" : "neutral"}>
+        {payout.ledger_entry_id ? "Con ledger" : "Pago cero"}
+      </Badge>
+    )
+  }));
+
+  const organizationPayoutRows = organizationPayouts.map((payout) => ({
+    id: payout.id,
+    organization: payout.organizations?.name || "Organizacion no disponible",
+    player: payout.profiles?.gamertag || profileNameById.get(payout.profile_id) || "Jugador no disponible",
+    day: formatDay(payout.payout_date),
+    grossValue: formatMoney(payout.gross_property_value),
+    rate: formatPayoutRate(payout.payout_rate),
+    attendanceShare: `${Number(payout.attendance_ownership_percent || 0).toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}%`,
     amount: formatMoney(payout.payout_amount),
     ledger: (
       <Badge tone={payout.ledger_entry_id ? "success" : "neutral"}>
@@ -398,7 +427,7 @@ export default async function GovernmentPage() {
         <SectionHeader
           eyebrow="Economia"
           title="Pagos diarios recientes"
-          description="Auditoria operativa de pagos generados al registrar asistencias validas."
+          description="Auditoria operativa de pagos directos generados a jugadores por asistencia valida."
         />
         {dailyPayouts.length ? (
           <Table
@@ -418,6 +447,36 @@ export default async function GovernmentPage() {
             description="Los pagos apareceran aqui cuando se registre una asistencia valida con rendimiento directo."
             icon={Landmark}
             title="Sin pagos diarios"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Organizaciones"
+          title="Pagos proporcionales recientes"
+          description="Pagos generados a organizaciones segun el porcentaje del socio que asistio."
+        />
+        {organizationPayouts.length ? (
+          <Table
+            columns={[
+              { key: "organization", label: "Organizacion" },
+              { key: "player", label: "Socio asistente" },
+              { key: "day", label: "Fecha" },
+              { key: "grossValue", label: "Valor base org." },
+              { key: "rate", label: "Tasa" },
+              { key: "attendanceShare", label: "% socio" },
+              { key: "amount", label: "Pago" },
+              { key: "ledger", label: "Ledger" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={organizationPayoutRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando un socio con participacion registre asistencia, aqui aparecera el pago proporcional a la organizacion."
+            icon={Landmark}
+            title="Sin pagos a organizaciones"
           />
         )}
       </Card>

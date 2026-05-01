@@ -49,7 +49,7 @@ export function AttendanceForm({ profiles }) {
 
       <p className={styles.hint}>
         Una asistencia valida requiere al menos 30 minutos conectados. Al guardar, el sistema registra la asistencia y
-        genera el pago diario directo del jugador en una sola transaccion.
+        genera el pago diario directo del jugador y los pagos proporcionales a sus organizaciones en una sola transaccion.
       </p>
 
       {state.error ? <p className={styles.error}>{state.error}</p> : null}

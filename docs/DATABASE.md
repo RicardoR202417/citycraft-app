@@ -376,11 +376,13 @@ Archivo:
 
 ```text
 supabase/migrations/20260430170000_daily_payout_rpc.sql
+supabase/migrations/20260430210000_organization_daily_payouts.sql
 ```
 
 Incluye:
 
 - Tabla `daily_payouts`.
+- Tabla `organization_daily_payouts`.
 - Politicas RLS para lectura del jugador y administracion de gobierno.
 - RPC `record_attendance_and_daily_payout`.
 
@@ -396,10 +398,22 @@ Reglas:
   `sum(valor_propiedad * porcentaje_jugador) * 0.001`.
 - Si el jugador no tiene valor inmobiliario directo, la asistencia se registra
   y el pago queda en `0`, sin entrada de ledger.
-- La version inicial no incluye pago proporcional a organizaciones; eso queda
-  para una historia posterior.
+- La RPC tambien revisa organizaciones donde el jugador asistente sea socio
+  activo con participacion mayor a `0`.
+- Por cada organizacion, calcula el rendimiento total diario con propiedades
+  activas a nombre de la organizacion:
+  `rendimiento_total_org = sum(valor_propiedad * porcentaje_org) * 0.001`.
+- El pago proporcional usa:
+  `pago_org_del_dia = rendimiento_total_org * porcentaje_socio_asistente`.
+- Si ningun socio de una organizacion registra asistencia valida ese dia, esa
+  organizacion no recibe pago.
+- Cada pago positivo a organizacion acredita su wallet y genera un movimiento
+  `daily_org_payout` en `ledger_entries`.
+- Los pagos organizacionales, incluso si son `0`, quedan trazados en
+  `organization_daily_payouts` para auditoria por asistencia, socio y fecha.
 - El jugador puede consultar sus pagos en `/economy`; gobierno puede revisar
-  pagos recientes en `/government`.
+  pagos recientes en `/government`; los miembros pueden revisar pagos recientes
+  desde el detalle de su organizacion.
 
 ## Registro inmobiliario base
 

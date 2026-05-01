@@ -373,9 +373,17 @@ export async function recordAttendance(_previousState = DEFAULT_STATE, formData)
   }
 
   revalidatePath("/government");
+  revalidatePath("/organizations");
+
+  const organizationPayoutTotal = Number(data?.organization_payout_total || 0);
+  const organizationPayoutCount = Number(data?.organization_payout_count || 0);
+  const organizationSummary =
+    organizationPayoutCount > 0
+      ? ` Pagos a organizaciones: ${formatMoney(organizationPayoutTotal)} en ${organizationPayoutCount} organizacion(es).`
+      : " Sin pagos a organizaciones.";
 
   return {
     error: "",
-    message: `Asistencia registrada. Pago diario directo: ${formatMoney(data?.payout_amount || 0)}.`
+    message: `Asistencia registrada. Pago diario directo: ${formatMoney(data?.payout_amount || 0)}.${organizationSummary}`
   };
 }

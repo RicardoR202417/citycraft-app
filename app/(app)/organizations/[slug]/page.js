@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, LandPlot, WalletCards } from "lucide-react";
+import { ArrowLeft, Building2, HandCoins, LandPlot, WalletCards } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../../components/ui";
 import { requireProfile } from "../../../../lib/auth";
@@ -21,6 +21,16 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function formatDay(value) {
+  if (!value) {
+    return "Pendiente";
+  }
+
+  return new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "medium"
+  }).format(new Date(`${value}T00:00:00`));
+}
+
 function formatRole(role) {
   const labels = {
     admin: "Admin",
@@ -29,6 +39,13 @@ function formatRole(role) {
   };
 
   return labels[role] || role;
+}
+
+function formatPayoutRate(value) {
+  return `${(Number(value || 0) * 100).toLocaleString("es-MX", {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3
+  })}%`;
 }
 
 function formatPropertyType(type) {
@@ -121,6 +138,20 @@ export default async function OrganizationDetailPage({ params }) {
     throw new Error(`Could not load organization members: ${membersError.message}`);
   }
 
+  const { data: organizationPayouts = [], error: organizationPayoutsError } = await supabase
+    .from("organization_daily_payouts")
+    .select(
+      "id, profile_id, payout_date, gross_property_value, payout_rate, attendance_ownership_percent, payout_amount, ledger_entry_id, profiles!organization_daily_payouts_profile_id_fkey(gamertag, display_name)"
+    )
+    .eq("organization_id", organization.id)
+    .order("payout_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(12);
+
+  if (organizationPayoutsError) {
+    throw new Error(`Could not load organization payouts: ${organizationPayoutsError.message}`);
+  }
+
   const portfolioValue = Number(marketValue.property_value || 0);
   const canManageMembers = ["owner", "admin"].includes(membership.role);
   const assignedPercent = memberRows.reduce((total, member) => total + Number(member.ownership_percent || 0), 0);
@@ -176,6 +207,24 @@ export default async function OrganizationDetailPage({ params }) {
       <MemberShareForm membership={member} organizationSlug={organization.slug} />
     ) : (
       "Solo lectura"
+    )
+  }));
+
+  const payoutRows = organizationPayouts.map((payout) => ({
+    id: payout.id,
+    player: payout.profiles?.display_name || payout.profiles?.gamertag || "Socio no disponible",
+    day: formatDay(payout.payout_date),
+    grossValue: formatMoney(payout.gross_property_value, walletCurrency),
+    rate: formatPayoutRate(payout.payout_rate),
+    attendanceShare: `${Number(payout.attendance_ownership_percent || 0).toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}%`,
+    amount: <strong>{formatMoney(payout.payout_amount, walletCurrency)}</strong>,
+    ledger: (
+      <Badge tone={payout.ledger_entry_id ? "success" : "neutral"}>
+        {payout.ledger_entry_id ? "Con ledger" : "Pago cero"}
+      </Badge>
     )
   }));
 
@@ -269,6 +318,35 @@ export default async function OrganizationDetailPage({ params }) {
             description="Cuando existan socios activos, apareceran aqui con su rol y participacion."
             icon={Building2}
             title="Sin socios activos"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Rendimiento"
+          title="Pagos proporcionales recientes"
+          description="Pagos recibidos por la organizacion cuando un socio con participacion registra asistencia valida."
+        />
+        {payoutRows.length ? (
+          <Table
+            columns={[
+              { key: "player", label: "Socio asistente" },
+              { key: "day", label: "Fecha" },
+              { key: "grossValue", label: "Valor base org." },
+              { key: "rate", label: "Tasa" },
+              { key: "attendanceShare", label: "% socio" },
+              { key: "amount", label: "Pago" },
+              { key: "ledger", label: "Ledger" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={payoutRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando el gobierno registre asistencia de un socio, los pagos proporcionales apareceran aqui."
+            icon={HandCoins}
+            title="Sin pagos proporcionales"
           />
         )}
       </Card>
