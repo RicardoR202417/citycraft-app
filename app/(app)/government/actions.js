@@ -100,6 +100,36 @@ function friendlyAttendanceError(error) {
   return "No se pudo registrar la asistencia. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlyUnownedLandError(error) {
+  if (!error?.message) {
+    return "No se pudo actualizar la tierra sin dueño. Intenta nuevamente.";
+  }
+
+  if (error.code === "23505") {
+    return "Ya existe una propiedad con ese slug.";
+  }
+
+  if (error.code === "23503") {
+    return "La delegacion o propiedad seleccionada no existe.";
+  }
+
+  if (error.code === "23514") {
+    return "Revisa disponibilidad, estado, tamano, valor y que la tierra no tenga propietarios.";
+  }
+
+  if (error.code === "42501") {
+    return "Solo el gobierno puede administrar tierras sin dueño.";
+  }
+
+  return "No se pudo actualizar la tierra sin dueño. Revisa los datos e intenta nuevamente.";
+}
+
+function revalidateGovernmentPaths() {
+  revalidatePath("/government");
+  revalidatePath("/properties");
+  revalidatePath("/transparency/government");
+}
+
 export async function createDistrict(_previousState = DEFAULT_STATE, formData) {
   const profile = await requireGovernmentProfile("/government");
   const name = getField(formData, "name");
@@ -271,7 +301,7 @@ export async function createProperty(_previousState = DEFAULT_STATE, formData) {
     };
   }
 
-  revalidatePath("/government");
+  revalidateGovernmentPaths();
 
   return {
     error: "",
@@ -321,7 +351,7 @@ export async function recordPropertyValuation(_previousState = DEFAULT_STATE, fo
     };
   }
 
-  revalidatePath("/government");
+  revalidateGovernmentPaths();
 
   return {
     error: "",
@@ -385,5 +415,154 @@ export async function recordAttendance(_previousState = DEFAULT_STATE, formData)
   return {
     error: "",
     message: `Asistencia registrada. Pago diario directo: ${formatMoney(data?.payout_amount || 0)}.${organizationSummary}`
+  };
+}
+
+export async function createUnownedLand(_previousState = DEFAULT_STATE, formData) {
+  await requireGovernmentProfile("/government");
+  const districtId = getField(formData, "district_id");
+  const name = getField(formData, "name");
+  const requestedSlug = getField(formData, "slug");
+  const address = getField(formData, "address");
+  const description = getField(formData, "description");
+  const governmentDisposition = getField(formData, "government_disposition") || "available";
+  const valuationReason = getField(formData, "valuation_reason") || "Valor inicial de tierra sin dueño";
+  const sizeBlocks = Number(getField(formData, "size_blocks"));
+  const currentValue = Number(getField(formData, "current_value"));
+  const slug = slugify(requestedSlug || name);
+  const dispositions = new Set(["available", "reserved", "for_sale", "for_auction"]);
+
+  if (!districtId) {
+    return {
+      error: "Selecciona una delegacion.",
+      message: ""
+    };
+  }
+
+  if (name.length < 2 || name.length > 120) {
+    return {
+      error: "El nombre debe tener entre 2 y 120 caracteres.",
+      message: ""
+    };
+  }
+
+  if (!slug || slug.length > 120) {
+    return {
+      error: "El slug no es valido. Usa letras, numeros y guiones.",
+      message: ""
+    };
+  }
+
+  if (!address) {
+    return {
+      error: "La direccion es obligatoria.",
+      message: ""
+    };
+  }
+
+  if (!Number.isFinite(sizeBlocks) || sizeBlocks <= 0) {
+    return {
+      error: "El tamano debe ser mayor a 0 bloques.",
+      message: ""
+    };
+  }
+
+  if (!Number.isFinite(currentValue) || currentValue < 0) {
+    return {
+      error: "El valor inicial no puede ser negativo.",
+      message: ""
+    };
+  }
+
+  if (!dispositions.has(governmentDisposition)) {
+    return {
+      error: "Selecciona una disponibilidad valida.",
+      message: ""
+    };
+  }
+
+  if (valuationReason.length < 3 || valuationReason.length > 240) {
+    return {
+      error: "La razon de valoracion debe tener entre 3 y 240 caracteres.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("create_unowned_government_land", {
+    p_address: address,
+    p_current_value: currentValue,
+    p_description: description || "",
+    p_district_id: districtId,
+    p_government_disposition: governmentDisposition,
+    p_name: name,
+    p_size_blocks: sizeBlocks,
+    p_slug: slug,
+    p_valuation_reason: valuationReason
+  });
+
+  if (error) {
+    return {
+      error: friendlyUnownedLandError(error),
+      message: ""
+    };
+  }
+
+  revalidateGovernmentPaths();
+
+  return {
+    error: "",
+    message: "Tierra sin dueño registrada y auditada."
+  };
+}
+
+export async function updateUnownedLandDisposition(_previousState = DEFAULT_STATE, formData) {
+  await requireGovernmentProfile("/government");
+  const propertyId = getField(formData, "property_id");
+  const governmentDisposition = getField(formData, "government_disposition");
+  const status = getField(formData, "status");
+  const dispositions = new Set(["available", "reserved", "for_sale", "for_auction"]);
+  const statuses = new Set(["planned", "active", "under_review", "demolished", "archived"]);
+
+  if (!propertyId) {
+    return {
+      error: "No se encontro la tierra sin dueño.",
+      message: ""
+    };
+  }
+
+  if (!dispositions.has(governmentDisposition)) {
+    return {
+      error: "Selecciona una disponibilidad valida.",
+      message: ""
+    };
+  }
+
+  if (!statuses.has(status)) {
+    return {
+      error: "Selecciona un estado valido.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("update_unowned_land_disposition", {
+    p_government_disposition: governmentDisposition,
+    p_property_id: propertyId,
+    p_status: status
+  });
+
+  if (error) {
+    return {
+      error: friendlyUnownedLandError(error),
+      message: ""
+    };
+  }
+
+  revalidateGovernmentPaths();
+
+  return {
+    error: "",
+    message: "Disponibilidad de tierra actualizada."
   };
 }

@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, CalendarCheck, Landmark, MapPinned } from "lucide-react";
+import { ArrowLeft, Building2, CalendarCheck, Landmark, LandPlot, MapPinned } from "lucide-react";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireGovernmentProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
@@ -6,6 +6,7 @@ import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../l
 import { AttendanceForm } from "./AttendanceForm";
 import { DistrictForm } from "./DistrictForm";
 import { PropertyForm } from "./PropertyForm";
+import { UnownedLandDispositionForm, UnownedLandForm } from "./UnownedLandForms";
 import { ValuationForm } from "./ValuationForm";
 import styles from "./page.module.css";
 
@@ -41,6 +42,52 @@ function formatPropertyType(type) {
   };
 
   return labels[type] || type;
+}
+
+function formatPropertyStatus(status) {
+  const labels = {
+    active: "Activa",
+    archived: "Archivada",
+    demolished: "Demolida",
+    planned: "Planeada",
+    under_review: "En revision"
+  };
+
+  return labels[status] || status;
+}
+
+function getStatusTone(status) {
+  const tones = {
+    active: "success",
+    archived: "neutral",
+    demolished: "danger",
+    planned: "info",
+    under_review: "warning"
+  };
+
+  return tones[status] || "neutral";
+}
+
+function formatLandDisposition(disposition) {
+  const labels = {
+    available: "Disponible",
+    for_auction: "En subasta",
+    for_sale: "En venta",
+    reserved: "Reservada"
+  };
+
+  return labels[disposition] || "Sin definir";
+}
+
+function getLandDispositionTone(disposition) {
+  const tones = {
+    available: "success",
+    for_auction: "warning",
+    for_sale: "info",
+    reserved: "neutral"
+  };
+
+  return tones[disposition] || "neutral";
 }
 
 function formatDate(value) {
@@ -83,6 +130,16 @@ export default async function GovernmentPage() {
     .select("id, name, districts(name)")
     .is("parent_property_id", null)
     .order("name", { ascending: true });
+
+  const { data: unownedLandsData } = await supabase
+    .from("properties")
+    .select(
+      "id, name, address, status, size_blocks, current_value, government_disposition, created_at, districts(name), property_owners(id)"
+    )
+    .eq("type", "land")
+    .not("government_disposition", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(30);
 
   const { data: valuationsData } = await supabase
     .from("property_valuations")
@@ -128,6 +185,7 @@ export default async function GovernmentPage() {
   const properties = asArray(propertiesData);
   const propertyRows = asArray(propertyRowsData);
   const parentProperties = asArray(parentPropertiesData);
+  const unownedLands = asArray(unownedLandsData).filter((land) => !asArray(land.property_owners).length);
   const valuations = asArray(valuationsData);
   const attendanceRecords = asArray(attendanceData);
   const dailyPayouts = asArray(payoutsData);
@@ -139,6 +197,9 @@ export default async function GovernmentPage() {
 
   const unitCount = properties.filter((property) => property.parent_property_id).length;
   const matrixCount = properties.length - unitCount;
+  const marketReadyLandCount = unownedLands.filter((land) =>
+    ["for_sale", "for_auction"].includes(land.government_disposition)
+  ).length;
 
   const propertyCountByDistrict = properties.reduce((counts, property) => {
     counts[property.district_id] = (counts[property.district_id] || 0) + 1;
@@ -180,6 +241,26 @@ export default async function GovernmentPage() {
     parent: property.parent_property_id ? propertyNameById.get(property.parent_property_id) || "Matriz no disponible" : "No aplica",
     size: Number(property.size_blocks).toLocaleString("es-MX"),
     value: formatMoney(property.current_value)
+  }));
+
+  const unownedLandRows = unownedLands.map((land) => ({
+    id: land.id,
+    name: (
+      <div className={styles.districtName}>
+        <strong>{land.name}</strong>
+        <span>{land.address}</span>
+      </div>
+    ),
+    district: land.districts?.name || "Sin delegacion",
+    disposition: (
+      <Badge tone={getLandDispositionTone(land.government_disposition)}>
+        {formatLandDisposition(land.government_disposition)}
+      </Badge>
+    ),
+    status: <Badge tone={getStatusTone(land.status)}>{formatPropertyStatus(land.status)}</Badge>,
+    size: Number(land.size_blocks).toLocaleString("es-MX"),
+    value: formatMoney(land.current_value),
+    update: <UnownedLandDispositionForm land={land} />
   }));
 
   const valuationRows = valuations.map((valuation) => ({
@@ -278,6 +359,16 @@ export default async function GovernmentPage() {
               <strong>{unitCount}</strong>
               <span>Unidades privativas</span>
             </article>
+            <article>
+              <LandPlot size={20} />
+              <strong>{unownedLands.length}</strong>
+              <span>Tierras sin dueño</span>
+            </article>
+            <article>
+              <Landmark size={20} />
+              <strong>{marketReadyLandCount}</strong>
+              <span>Listas para mercado</span>
+            </article>
           </div>
         </Card>
       </section>
@@ -294,6 +385,15 @@ export default async function GovernmentPage() {
           parentProperties={parentProperties}
           profiles={profiles}
         />
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Tierras sin dueño"
+          title="Registrar tierra gubernamental"
+          description="Alta de terrenos sin propietario administrados por el gobierno para reservar, vender o subastar."
+        />
+        <UnownedLandForm districts={districts} />
       </Card>
 
       <Card className={styles.card}>
@@ -365,6 +465,35 @@ export default async function GovernmentPage() {
             description="Cuando registres propiedades, apareceran aqui con su delegacion, tipo y valor actual."
             icon={Building2}
             title="Sin propiedades registradas"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Gobierno"
+          title="Tierras sin dueño"
+          description="Inventario operativo de terrenos sin propietarios. Cambiar a venta o subasta deja auditoria."
+        />
+        {unownedLands.length ? (
+          <Table
+            columns={[
+              { key: "name", label: "Tierra" },
+              { key: "district", label: "Delegacion" },
+              { key: "disposition", label: "Disponibilidad" },
+              { key: "status", label: "Estado" },
+              { key: "size", label: "Bloques" },
+              { key: "value", label: "Valor" },
+              { key: "update", label: "Gestion" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={unownedLandRows}
+          />
+        ) : (
+          <EmptyState
+            description="Registra tierras sin dueño para que el gobierno pueda reservarlas, venderlas o subastarlas."
+            icon={LandPlot}
+            title="Sin tierras sin dueño"
           />
         )}
       </Card>

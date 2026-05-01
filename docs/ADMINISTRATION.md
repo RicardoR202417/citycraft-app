@@ -24,6 +24,9 @@ mantenimiento tecnico y operativo de CityCraft App.
 - Sus datos deben ser transparentes para los jugadores.
 - Su vista publica vive en `/transparency/government` y expone perfil, wallet,
   propiedades, movimientos permitidos y acciones recientes sin requerir login.
+- Administra tierras sin dueño desde `/government`: puede registrarlas,
+  reservarlas, marcarlas disponibles, ponerlas como venta o subasta y dejar
+  auditoria de cada cambio.
 
 ### Jugadores y organizaciones
 
@@ -154,6 +157,8 @@ Implementado:
 - Seccion `/admin/audit` para consultar `audit_logs`, revisar `ledger_entries`
   y revertir acreditaciones mediante movimientos compensatorios.
 - Vista publica `/transparency/government` para transparencia del gobierno.
+- Flujo de tierras sin dueño con `government_disposition`, RPCs auditados y
+  exposicion publica en transparencia.
 
 Pendiente:
 

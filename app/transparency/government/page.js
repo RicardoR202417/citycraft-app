@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, Landmark, ReceiptText, Scale, ShieldCheck, WalletCards } from "lucide-react";
+import { ArrowLeft, Building2, Landmark, LandPlot, ReceiptText, Scale, ShieldCheck, WalletCards } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { formatMoney, formatWalletBalance } from "../../../lib/economy";
@@ -62,6 +62,28 @@ function getStatusTone(status) {
   return tones[status] || "neutral";
 }
 
+function formatLandDisposition(disposition) {
+  const labels = {
+    available: "Disponible",
+    for_auction: "En subasta",
+    for_sale: "En venta",
+    reserved: "Reservada"
+  };
+
+  return labels[disposition] || "Sin definir";
+}
+
+function getLandDispositionTone(disposition) {
+  const tones = {
+    available: "success",
+    for_auction: "warning",
+    for_sale: "info",
+    reserved: "neutral"
+  };
+
+  return tones[disposition] || "neutral";
+}
+
 function formatRole(role) {
   const labels = {
     admin: "Admin",
@@ -111,7 +133,12 @@ export default async function GovernmentTransparencyPage() {
   const members = asArray(government.organization_members).filter((member) => member.is_active);
   const memberProfileIds = members.map((member) => member.profile_id);
 
-  const [{ data: propertyOwnersData = [] }, { data: ledgerEntriesData = [] }, { data: auditEventsData = [] }] = await Promise.all([
+  const [
+    { data: propertyOwnersData = [] },
+    { data: unownedLandsData = [] },
+    { data: ledgerEntriesData = [] },
+    { data: auditEventsData = [] }
+  ] = await Promise.all([
     serviceSupabase
       .from("property_owners")
       .select(
@@ -119,6 +146,15 @@ export default async function GovernmentTransparencyPage() {
       )
       .eq("owner_type", "organization")
       .eq("organization_id", government.id)
+      .order("created_at", { ascending: false })
+      .limit(30),
+    serviceSupabase
+      .from("properties")
+      .select(
+        "id, name, address, status, size_blocks, current_value, government_disposition, districts(name), property_owners(id)"
+      )
+      .eq("type", "land")
+      .not("government_disposition", "is", null)
       .order("created_at", { ascending: false })
       .limit(30),
     wallet?.id
@@ -140,6 +176,7 @@ export default async function GovernmentTransparencyPage() {
   ]);
 
   const propertyOwners = asArray(propertyOwnersData);
+  const unownedLands = asArray(unownedLandsData).filter((land) => !asArray(land.property_owners).length);
   const ledgerEntries = asArray(ledgerEntriesData);
   const auditEvents = asArray(auditEventsData);
   const propertyValue = propertyOwners.reduce((total, owner) => {
@@ -194,6 +231,25 @@ export default async function GovernmentTransparencyPage() {
       value: formatMoney(proportionalValue, wallet?.currency_symbol)
     };
   });
+
+  const unownedLandRows = unownedLands.map((land) => ({
+    id: land.id,
+    land: (
+      <div className={styles.nameCell}>
+        <strong>{land.name || "Tierra no disponible"}</strong>
+        <span>{land.address || "Sin direccion"}</span>
+      </div>
+    ),
+    district: land.districts?.name || "Sin delegacion",
+    disposition: (
+      <Badge tone={getLandDispositionTone(land.government_disposition)}>
+        {formatLandDisposition(land.government_disposition)}
+      </Badge>
+    ),
+    status: <Badge tone={getStatusTone(land.status)}>{formatPropertyStatus(land.status)}</Badge>,
+    size: Number(land.size_blocks || 0).toLocaleString("es-MX"),
+    value: formatMoney(land.current_value, wallet?.currency_symbol)
+  }));
 
   const ledgerRows = ledgerEntries.map((entry) => {
     const isIncome = entry.to_wallet_id === wallet?.id;
@@ -301,6 +357,34 @@ export default async function GovernmentTransparencyPage() {
             description="Cuando existan tierras, edificios o servicios publicos a nombre del gobierno, apareceran aqui."
             icon={Landmark}
             title="Sin propiedades gubernamentales"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Territorio"
+          title="Tierras sin dueño"
+          description="Terrenos administrados por el gobierno por no tener propietario asignado."
+        />
+        {unownedLandRows.length ? (
+          <Table
+            columns={[
+              { key: "land", label: "Tierra" },
+              { key: "district", label: "Delegacion" },
+              { key: "disposition", label: "Disponibilidad" },
+              { key: "status", label: "Estado" },
+              { key: "size", label: "Bloques" },
+              { key: "value", label: "Valor" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={unownedLandRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando el gobierno registre terrenos sin propietario, apareceran aqui para transparencia."
+            icon={LandPlot}
+            title="Sin tierras sin dueño"
           />
         )}
       </Card>
