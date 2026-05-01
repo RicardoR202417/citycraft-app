@@ -536,3 +536,25 @@ Reglas:
   se crea `ledger_entries`.
 - Si no hay saldo suficiente, la multa queda como `debt` sin mover dinero.
 - En ambos casos se crea notificacion y auditoria `government.fine_applied`.
+
+## Decomisos gubernamentales
+
+Archivo:
+
+```text
+supabase/migrations/20260430260000_government_property_seizures.sql
+```
+
+Incluye:
+
+- Tabla `government_property_seizures`.
+- RPC `seize_property_for_government`.
+
+Reglas:
+
+- Solo miembros del gobierno pueden decomisar propiedades.
+- El decomiso requiere razon documentada.
+- Los propietarios anteriores se guardan en `previous_owners`.
+- La propiedad queda con un propietario unico: gobierno al 100%.
+- Se crean notificaciones para propietarios previos y auditoria
+  `government.property_seized`.

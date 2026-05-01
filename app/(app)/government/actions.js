@@ -164,6 +164,26 @@ function friendlyFineError(error) {
   return "No se pudo aplicar la multa. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlySeizureError(error) {
+  if (!error?.message) {
+    return "No se pudo decomisar la propiedad. Intenta nuevamente.";
+  }
+
+  if (error.code === "23503") {
+    return "La propiedad o gobierno no existe.";
+  }
+
+  if (error.code === "23514") {
+    return "Revisa propiedad y razon del decomiso.";
+  }
+
+  if (error.code === "42501") {
+    return "Solo el gobierno puede decomisar propiedades.";
+  }
+
+  return "No se pudo decomisar la propiedad. Revisa los datos e intenta nuevamente.";
+}
+
 function revalidateGovernmentPaths() {
   revalidatePath("/government");
   revalidatePath("/properties");
@@ -721,5 +741,45 @@ export async function applyGovernmentFine(_previousState = DEFAULT_STATE, formDa
   return {
     error: "",
     message: "Multa aplicada. Si habia saldo suficiente se cobro; si no, quedo como adeudo."
+  };
+}
+
+export async function seizePropertyForGovernment(_previousState = DEFAULT_STATE, formData) {
+  await requireGovernmentProfile("/government");
+  const propertyId = getField(formData, "property_id");
+  const reason = getField(formData, "reason");
+
+  if (!propertyId) {
+    return {
+      error: "Selecciona la propiedad a decomisar.",
+      message: ""
+    };
+  }
+
+  if (reason.length < 3 || reason.length > 1000) {
+    return {
+      error: "La razon debe tener entre 3 y 1000 caracteres.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("seize_property_for_government", {
+    p_property_id: propertyId,
+    p_reason: reason
+  });
+
+  if (error) {
+    return {
+      error: friendlySeizureError(error),
+      message: ""
+    };
+  }
+
+  revalidateGovernmentPaths();
+
+  return {
+    error: "",
+    message: "Propiedad decomisada y transferida al gobierno."
   };
 }

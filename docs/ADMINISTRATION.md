@@ -33,6 +33,9 @@ mantenimiento tecnico y operativo de CityCraft App.
 - Aplica multas desde `/government` a jugadores u organizaciones; si hay saldo
   suficiente se transfiere al gobierno con ledger, y si no hay saldo queda como
   adeudo con notificacion y auditoria.
+- Puede decomisar propiedades desde `/government`; el sistema remueve
+  propietarios previos, asigna 100% al gobierno, notifica afectados y conserva
+  evidencia en auditoria.
 
 ### Jugadores y organizaciones
 
@@ -169,6 +172,8 @@ Implementado:
   desde `/properties` y el gobierno aprueba o rechaza con cambios atomicos.
 - Flujo de multas con `government_fines`, `notifications` y ledger
   `government_fine`.
+- Flujo de decomisos con `government_property_seizures` y RPC
+  `seize_property_for_government`.
 
 Pendiente:
 

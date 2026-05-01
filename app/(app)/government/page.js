@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, CalendarCheck, ClipboardCheck, Landmark, LandPlot, MapPinned, Scale } from "lucide-react";
+import { ArrowLeft, Building2, CalendarCheck, ClipboardCheck, Landmark, LandPlot, MapPinned, Scale, ShieldAlert } from "lucide-react";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireGovernmentProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
@@ -8,6 +8,7 @@ import { DistrictForm } from "./DistrictForm";
 import { FineForm } from "./FineForm";
 import { PermitDecisionForm } from "./PermitDecisionForm";
 import { PropertyForm } from "./PropertyForm";
+import { SeizureForm } from "./SeizureForm";
 import { UnownedLandDispositionForm, UnownedLandForm } from "./UnownedLandForms";
 import { ValuationForm } from "./ValuationForm";
 import styles from "./page.module.css";
@@ -181,6 +182,11 @@ export default async function GovernmentPage() {
     .is("parent_property_id", null)
     .order("name", { ascending: true });
 
+  const { data: seizurePropertiesData } = await serviceSupabase
+    .from("properties")
+    .select("id, name, districts(name)")
+    .order("name", { ascending: true });
+
   const { data: unownedLandsData } = await supabase
     .from("properties")
     .select(
@@ -237,6 +243,12 @@ export default async function GovernmentPage() {
     .order("created_at", { ascending: false })
     .limit(30);
 
+  const { data: seizuresData } = await serviceSupabase
+    .from("government_property_seizures")
+    .select("id, property_id, reason, previous_owners, created_at, properties(name, districts(name)), profiles!government_property_seizures_created_by_fkey(gamertag)")
+    .order("created_at", { ascending: false })
+    .limit(30);
+
   const { data: profilesData } = await serviceSupabase
     .from("profiles")
     .select("id, gamertag")
@@ -252,6 +264,7 @@ export default async function GovernmentPage() {
   const properties = asArray(propertiesData);
   const propertyRows = asArray(propertyRowsData);
   const parentProperties = asArray(parentPropertiesData);
+  const seizureProperties = asArray(seizurePropertiesData);
   const unownedLands = asArray(unownedLandsData).filter((land) => !asArray(land.property_owners).length);
   const valuations = asArray(valuationsData);
   const attendanceRecords = asArray(attendanceData);
@@ -259,6 +272,7 @@ export default async function GovernmentPage() {
   const organizationPayouts = asArray(organizationPayoutsData);
   const permitRequests = asArray(permitRequestsData);
   const fines = asArray(finesData);
+  const seizures = asArray(seizuresData);
   const profiles = asArray(profilesData);
   const organizations = asArray(organizationsData);
   const fineTargetOrganizations = organizations.filter((organization) => organization.type !== "government");
@@ -444,6 +458,28 @@ export default async function GovernmentPage() {
     };
   });
 
+  const seizureRows = seizures.map((seizure) => {
+    const previousOwners = asArray(seizure.previous_owners);
+
+    return {
+      id: seizure.id,
+      property: (
+        <div className={styles.districtName}>
+          <strong>{seizure.properties?.name || "Propiedad no disponible"}</strong>
+          <span>{seizure.properties?.districts?.name || "Sin delegacion"}</span>
+        </div>
+      ),
+      previousOwners: (
+        <Badge tone={previousOwners.length ? "warning" : "neutral"}>
+          {previousOwners.length.toLocaleString("es-MX")}
+        </Badge>
+      ),
+      reason: seizure.reason,
+      actor: seizure.profiles?.gamertag || "Gobierno",
+      createdAt: formatDate(seizure.created_at)
+    };
+  });
+
   return (
     <main className={styles.page}>
       <PageHeader
@@ -509,6 +545,11 @@ export default async function GovernmentPage() {
               <strong>{formatMoney(debtFineTotal)}</strong>
               <span>Adeudos por multas</span>
             </article>
+            <article>
+              <ShieldAlert size={20} />
+              <strong>{seizures.length}</strong>
+              <span>Decomisos recientes</span>
+            </article>
           </div>
         </Card>
       </section>
@@ -561,6 +602,15 @@ export default async function GovernmentPage() {
           description="El gobierno puede multar jugadores u organizaciones. Si hay saldo suficiente, se cobra y se transfiere al gobierno; si no, queda como adeudo."
         />
         <FineForm organizations={fineTargetOrganizations} profiles={profiles} />
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Decomisos"
+          title="Decomisar propiedad"
+          description="Transfiere una propiedad al gobierno con razon documentada, notificaciones a propietarios previos y auditoria."
+        />
+        <SeizureForm properties={seizureProperties} />
       </Card>
 
       <Card className={styles.card}>
@@ -704,6 +754,33 @@ export default async function GovernmentPage() {
             description="Cuando el gobierno aplique multas, apareceran aqui con su estado economico."
             icon={Scale}
             title="Sin multas registradas"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Decomisos"
+          title="Decomisos recientes"
+          description="Historial de propiedades transferidas al gobierno por accion gubernamental."
+        />
+        {seizureRows.length ? (
+          <Table
+            columns={[
+              { key: "property", label: "Propiedad" },
+              { key: "previousOwners", label: "Propietarios previos" },
+              { key: "reason", label: "Razon" },
+              { key: "actor", label: "Registro" },
+              { key: "createdAt", label: "Fecha" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={seizureRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando el gobierno decomise propiedades, apareceran aqui con su razon y propietarios previos."
+            icon={ShieldAlert}
+            title="Sin decomisos registrados"
           />
         )}
       </Card>
