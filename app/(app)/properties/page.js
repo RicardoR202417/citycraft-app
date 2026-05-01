@@ -1,8 +1,9 @@
-import { ArrowLeft, Building2, LandPlot, MapPinned, Percent } from "lucide-react";
+import { ArrowLeft, Building2, ClipboardCheck, LandPlot, MapPinned, Percent } from "lucide-react";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import { PermitRequestForm } from "./PermitRequestForm";
 import styles from "./page.module.css";
 
 export const metadata = {
@@ -23,6 +24,47 @@ function formatPropertyType(type) {
   };
 
   return labels[type] || type;
+}
+
+function formatRequestType(type) {
+  const labels = {
+    construction: "Construccion",
+    demolition: "Demolicion",
+    modification: "Modificacion"
+  };
+
+  return labels[type] || type;
+}
+
+function formatPermitStatus(status) {
+  const labels = {
+    approved: "Aprobada",
+    pending: "Pendiente",
+    rejected: "Rechazada"
+  };
+
+  return labels[status] || status;
+}
+
+function getPermitStatusTone(status) {
+  const tones = {
+    approved: "success",
+    pending: "warning",
+    rejected: "danger"
+  };
+
+  return tones[status] || "neutral";
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "Pendiente";
+  }
+
+  return new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
 }
 
 export default async function PropertiesPage() {
@@ -48,6 +90,13 @@ export default async function PropertiesPage() {
     )
     .eq("profile_id", profile.id)
     .order("acquired_at", { ascending: false });
+
+  const { data: permitRequests = [] } = await supabase
+    .from("property_permit_requests")
+    .select("id, property_id, request_type, title, status, proposed_type, proposed_size_blocks, proposed_value, government_comment, created_at, decided_at, properties(name)")
+    .eq("requested_by_profile_id", profile.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
 
   const totalValue = ownerships.reduce((sum, ownership) => {
     const value = Number(ownership.properties?.current_value || 0);
@@ -76,6 +125,40 @@ export default async function PropertiesPage() {
       value: formatMoney(proportionalValue)
     };
   });
+
+  const propertyOptions = ownerships
+    .map((ownership) => ownership.properties)
+    .filter(Boolean)
+    .map((property) => ({
+      id: property.id,
+      name: property.name
+    }));
+
+  const permitRows = permitRequests.map((request) => ({
+    id: request.id,
+    request: (
+      <div className={styles.propertyName}>
+        <strong>{request.title}</strong>
+        <span>{request.properties?.name || "Propiedad no disponible"}</span>
+      </div>
+    ),
+    type: <Badge tone="info">{formatRequestType(request.request_type)}</Badge>,
+    status: <Badge tone={getPermitStatusTone(request.status)}>{formatPermitStatus(request.status)}</Badge>,
+    proposed: (
+      <div className={styles.propertyName}>
+        <span>{request.proposed_type ? `Tipo: ${formatPropertyType(request.proposed_type)}` : "Tipo: sin cambio"}</span>
+        <span>
+          {request.proposed_size_blocks
+            ? `Bloques: ${Number(request.proposed_size_blocks).toLocaleString("es-MX")}`
+            : "Bloques: sin cambio"}
+        </span>
+        <span>{request.proposed_value !== null ? `Valor: ${formatMoney(request.proposed_value)}` : "Valor: sin cambio"}</span>
+      </div>
+    ),
+    comment: request.government_comment || "Pendiente de revision",
+    createdAt: formatDate(request.created_at),
+    decidedAt: formatDate(request.decided_at)
+  }));
 
   const summaryItems = [
     { label: "Propiedades directas", value: ownerships.length },
@@ -148,6 +231,44 @@ export default async function PropertiesPage() {
             description="Cuando el gobierno registre una propiedad a tu nombre, aparecera aqui con porcentaje y valor proporcional."
             icon={LandPlot}
             title="Aun no tienes propiedades"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          description="Solicita al gobierno autorizacion para construir, modificar o demoler una propiedad directa."
+          eyebrow="Permisos"
+          title="Nueva solicitud"
+        />
+        <PermitRequestForm properties={propertyOptions} />
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          description="Seguimiento de solicitudes enviadas al gobierno y su decision."
+          eyebrow="Permisos"
+          title="Solicitudes recientes"
+        />
+        {permitRows.length ? (
+          <Table
+            columns={[
+              { key: "request", label: "Solicitud" },
+              { key: "type", label: "Tipo" },
+              { key: "status", label: "Estado" },
+              { key: "proposed", label: "Propuesta" },
+              { key: "comment", label: "Comentario gobierno" },
+              { key: "createdAt", label: "Creada" },
+              { key: "decidedAt", label: "Decision" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={permitRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando envies solicitudes de construccion o modificacion, podras darles seguimiento aqui."
+            icon={ClipboardCheck}
+            title="Sin solicitudes"
           />
         )}
       </Card>

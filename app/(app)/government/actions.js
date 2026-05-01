@@ -124,6 +124,26 @@ function friendlyUnownedLandError(error) {
   return "No se pudo actualizar la tierra sin dueño. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlyPermitDecisionError(error) {
+  if (!error?.message) {
+    return "No se pudo decidir la solicitud. Intenta nuevamente.";
+  }
+
+  if (error.code === "23503") {
+    return "La solicitud o propiedad ya no existe.";
+  }
+
+  if (error.code === "23514") {
+    return "Revisa la decision, comentario o que la solicitud siga pendiente.";
+  }
+
+  if (error.code === "42501") {
+    return "Solo el gobierno puede decidir solicitudes de permiso.";
+  }
+
+  return "No se pudo decidir la solicitud. Revisa los datos e intenta nuevamente.";
+}
+
 function revalidateGovernmentPaths() {
   revalidatePath("/government");
   revalidatePath("/properties");
@@ -564,5 +584,54 @@ export async function updateUnownedLandDisposition(_previousState = DEFAULT_STAT
   return {
     error: "",
     message: "Disponibilidad de tierra actualizada."
+  };
+}
+
+export async function decidePropertyPermitRequest(_previousState = DEFAULT_STATE, formData) {
+  await requireGovernmentProfile("/government");
+  const requestId = getField(formData, "request_id");
+  const decision = getField(formData, "decision");
+  const governmentComment = getField(formData, "government_comment");
+
+  if (!requestId) {
+    return {
+      error: "No se encontro la solicitud.",
+      message: ""
+    };
+  }
+
+  if (decision !== "approved" && decision !== "rejected") {
+    return {
+      error: "Selecciona aprobar o rechazar.",
+      message: ""
+    };
+  }
+
+  if (governmentComment.length < 3 || governmentComment.length > 1000) {
+    return {
+      error: "El comentario debe tener entre 3 y 1000 caracteres.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("decide_property_permit_request", {
+    p_decision: decision,
+    p_government_comment: governmentComment,
+    p_request_id: requestId
+  });
+
+  if (error) {
+    return {
+      error: friendlyPermitDecisionError(error),
+      message: ""
+    };
+  }
+
+  revalidateGovernmentPaths();
+
+  return {
+    error: "",
+    message: decision === "approved" ? "Solicitud aprobada y aplicada." : "Solicitud rechazada."
   };
 }

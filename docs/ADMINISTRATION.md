@@ -27,6 +27,9 @@ mantenimiento tecnico y operativo de CityCraft App.
 - Administra tierras sin dueño desde `/government`: puede registrarlas,
   reservarlas, marcarlas disponibles, ponerlas como venta o subasta y dejar
   auditoria de cada cambio.
+- Revisa solicitudes de construccion, modificacion o demolicion desde
+  `/government`; cada decision requiere comentario y puede actualizar tipo,
+  tamano, valor o estado de la propiedad.
 
 ### Jugadores y organizaciones
 
@@ -159,6 +162,8 @@ Implementado:
 - Vista publica `/transparency/government` para transparencia del gobierno.
 - Flujo de tierras sin dueño con `government_disposition`, RPCs auditados y
   exposicion publica en transparencia.
+- Flujo de permisos con `property_permit_requests`: los jugadores solicitan
+  desde `/properties` y el gobierno aprueba o rechaza con cambios atomicos.
 
 Pendiente:
 

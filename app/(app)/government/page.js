@@ -1,10 +1,11 @@
-import { ArrowLeft, Building2, CalendarCheck, Landmark, LandPlot, MapPinned } from "lucide-react";
+import { ArrowLeft, Building2, CalendarCheck, ClipboardCheck, Landmark, LandPlot, MapPinned } from "lucide-react";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireGovernmentProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase/server";
 import { AttendanceForm } from "./AttendanceForm";
 import { DistrictForm } from "./DistrictForm";
+import { PermitDecisionForm } from "./PermitDecisionForm";
 import { PropertyForm } from "./PropertyForm";
 import { UnownedLandDispositionForm, UnownedLandForm } from "./UnownedLandForms";
 import { ValuationForm } from "./ValuationForm";
@@ -90,6 +91,36 @@ function getLandDispositionTone(disposition) {
   return tones[disposition] || "neutral";
 }
 
+function formatRequestType(type) {
+  const labels = {
+    construction: "Construccion",
+    demolition: "Demolicion",
+    modification: "Modificacion"
+  };
+
+  return labels[type] || type;
+}
+
+function formatPermitStatus(status) {
+  const labels = {
+    approved: "Aprobada",
+    pending: "Pendiente",
+    rejected: "Rechazada"
+  };
+
+  return labels[status] || status;
+}
+
+function getPermitStatusTone(status) {
+  const tones = {
+    approved: "success",
+    pending: "warning",
+    rejected: "danger"
+  };
+
+  return tones[status] || "neutral";
+}
+
 function formatDate(value) {
   return new Intl.DateTimeFormat("es-MX", {
     dateStyle: "medium",
@@ -170,6 +201,15 @@ export default async function GovernmentPage() {
     .order("created_at", { ascending: false })
     .limit(20);
 
+  const { data: permitRequestsData } = await serviceSupabase
+    .from("property_permit_requests")
+    .select(
+      "id, property_id, requested_by_profile_id, request_type, title, description, proposed_type, proposed_size_blocks, proposed_value, status, government_comment, created_at, decided_at, properties(name, type, size_blocks, current_value, districts(name)), profiles!property_permit_requests_requested_by_profile_id_fkey(gamertag, display_name)"
+    )
+    .order("status", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(30);
+
   const { data: profilesData } = await serviceSupabase
     .from("profiles")
     .select("id, gamertag")
@@ -190,6 +230,7 @@ export default async function GovernmentPage() {
   const attendanceRecords = asArray(attendanceData);
   const dailyPayouts = asArray(payoutsData);
   const organizationPayouts = asArray(organizationPayoutsData);
+  const permitRequests = asArray(permitRequestsData);
   const profiles = asArray(profilesData);
   const organizations = asArray(organizationsData);
   const propertyNameById = new Map(properties.map((property) => [property.id, property.name]));
@@ -200,6 +241,7 @@ export default async function GovernmentPage() {
   const marketReadyLandCount = unownedLands.filter((land) =>
     ["for_sale", "for_auction"].includes(land.government_disposition)
   ).length;
+  const pendingPermitCount = permitRequests.filter((request) => request.status === "pending").length;
 
   const propertyCountByDistrict = properties.reduce((counts, property) => {
     counts[property.district_id] = (counts[property.district_id] || 0) + 1;
@@ -314,6 +356,34 @@ export default async function GovernmentPage() {
     )
   }));
 
+  const permitRows = permitRequests.map((request) => ({
+    id: request.id,
+    request: (
+      <div className={styles.districtName}>
+        <strong>{request.title}</strong>
+        <span>{request.properties?.name || "Propiedad no disponible"}</span>
+      </div>
+    ),
+    requester: request.profiles?.display_name || request.profiles?.gamertag || "Jugador no disponible",
+    type: <Badge tone="info">{formatRequestType(request.request_type)}</Badge>,
+    status: <Badge tone={getPermitStatusTone(request.status)}>{formatPermitStatus(request.status)}</Badge>,
+    proposed: (
+      <div className={styles.districtName}>
+        <span>{request.proposed_type ? `Tipo: ${formatPropertyType(request.proposed_type)}` : "Tipo: sin cambio"}</span>
+        <span>
+          {request.proposed_size_blocks
+            ? `Bloques: ${Number(request.proposed_size_blocks).toLocaleString("es-MX")}`
+            : "Bloques: sin cambio"}
+        </span>
+        <span>{request.proposed_value !== null ? `Valor: ${formatMoney(request.proposed_value)}` : "Valor: sin cambio"}</span>
+      </div>
+    ),
+    description: request.description,
+    comment: request.government_comment || "Pendiente",
+    createdAt: formatDate(request.created_at),
+    decision: request.status === "pending" ? <PermitDecisionForm request={request} /> : formatDate(request.decided_at)
+  }));
+
   return (
     <main className={styles.page}>
       <PageHeader
@@ -368,6 +438,11 @@ export default async function GovernmentPage() {
               <Landmark size={20} />
               <strong>{marketReadyLandCount}</strong>
               <span>Listas para mercado</span>
+            </article>
+            <article>
+              <ClipboardCheck size={20} />
+              <strong>{pendingPermitCount}</strong>
+              <span>Permisos pendientes</span>
             </article>
           </div>
         </Card>
@@ -494,6 +569,37 @@ export default async function GovernmentPage() {
             description="Registra tierras sin dueño para que el gobierno pueda reservarlas, venderlas o subastarlas."
             icon={LandPlot}
             title="Sin tierras sin dueño"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Permisos"
+          title="Solicitudes de construccion y modificacion"
+          description="Revisa solicitudes de jugadores. Al aprobar, el sistema puede aplicar tipo, tamano, valor o demolicion sobre la propiedad."
+        />
+        {permitRows.length ? (
+          <Table
+            columns={[
+              { key: "request", label: "Solicitud" },
+              { key: "requester", label: "Solicitante" },
+              { key: "type", label: "Tipo" },
+              { key: "status", label: "Estado" },
+              { key: "proposed", label: "Propuesta" },
+              { key: "description", label: "Descripcion" },
+              { key: "comment", label: "Comentario" },
+              { key: "createdAt", label: "Creada" },
+              { key: "decision", label: "Decision" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={permitRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando un jugador solicite construir, modificar o demoler una propiedad, aparecera aqui."
+            icon={ClipboardCheck}
+            title="Sin solicitudes de permiso"
           />
         )}
       </Card>

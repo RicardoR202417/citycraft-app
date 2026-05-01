@@ -1,0 +1,60 @@
+.form {
+  display: grid;
+  gap: 10px;
+  min-width: 340px;
+}
+
+.form label {
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.form select,
+.form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  padding: 10px 11px;
+  font: inherit;
+}
+
+.form textarea {
+  resize: vertical;
+}
+
+.form select:focus,
+.form textarea:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.error,
+.message {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.message {
+  color: var(--success);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .form {
+    min-width: 0;
+  }
+}
