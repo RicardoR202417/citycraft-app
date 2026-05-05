@@ -513,6 +513,36 @@ valoracion para una propiedad. En la misma transaccion:
 Las filas historicas no se editan desde la UI comun; cada ajuste de valor debe
 crear una nueva valoracion para mantener trazabilidad.
 
+## Plusvalia v1
+
+La plusvalia visible para jugadores se calcula en aplicacion con
+`lib/appreciation.js` usando los datos actuales de `districts` y `properties`.
+No modifica valores de propiedades todavia; solo muestra un indice operativo
+para entender cada zona.
+
+Formula conceptual:
+
+```text
+indice_actual =
+  districts.base_appreciation_rate
+  + ajuste_por_desarrollo_activo
+  + ajuste_por_servicios_e_infraestructura
+  + ajuste_por_valor_por_bloque
+  - ajuste_por_terreno_sin_desarrollar
+  - ajuste_por_propiedades_inactivas
+```
+
+Reglas:
+
+- Los ajustes son pequenos y acotados para evitar cambios bruscos.
+- La tendencia compara `indice_actual` contra `base_appreciation_rate`.
+- `/districts` muestra indice actual, factores principales y tendencia por
+  delegacion.
+- `/properties` muestra la plusvalia de la delegacion de cada propiedad directa
+  del jugador.
+- El historial persistente de indices queda separado para la historia
+  `CCAPP-62`.
+
 ## Multas gubernamentales
 
 Archivo:

@@ -74,8 +74,39 @@
   line-height: 1.5;
 }
 
+.zoneGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.zoneGrid article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  padding: 12px;
+}
+
+.zoneGrid svg {
+  color: var(--accent);
+}
+
+.zoneGrid strong,
+.zoneGrid span {
+  display: block;
+}
+
+.zoneGrid span {
+  color: var(--muted);
+}
+
 @media (max-width: 860px) {
-  .grid {
+  .grid,
+  .zoneGrid {
     grid-template-columns: 1fr;
   }
 }

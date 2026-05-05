@@ -1,5 +1,11 @@
 import { ArrowLeft, Building2, ClipboardCheck, LandPlot, MapPinned, Percent } from "lucide-react";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
+import {
+  calculateDistrictAppreciation,
+  formatAppreciationRate,
+  formatAppreciationTrend,
+  getAppreciationTrendTone
+} from "../../../lib/appreciation";
 import { requireProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
@@ -79,12 +85,13 @@ export default async function PropertiesPage() {
         ownership_percent,
         properties (
           id,
+          district_id,
           name,
           address,
           type,
           size_blocks,
           current_value,
-          districts (name)
+          districts (id, name)
         )
       `
     )
@@ -97,6 +104,19 @@ export default async function PropertiesPage() {
     .eq("requested_by_profile_id", profile.id)
     .order("created_at", { ascending: false })
     .limit(20);
+
+  const [{ data: districts = [] }, { data: districtProperties = [] }] = await Promise.all([
+    supabase
+      .from("districts")
+      .select("id, name, slug, description, base_appreciation_rate"),
+    supabase
+      .from("properties")
+      .select("id, district_id, type, status, size_blocks, current_value")
+  ]);
+
+  const districtMetricsById = new Map(
+    districts.map((district) => [district.id, calculateDistrictAppreciation(district, districtProperties)])
+  );
 
   const totalValue = ownerships.reduce((sum, ownership) => {
     const value = Number(ownership.properties?.current_value || 0);
@@ -117,6 +137,13 @@ export default async function PropertiesPage() {
         </div>
       ),
       district: property.districts?.name || "Sin delegacion",
+      appreciation: property.district_id ? (
+        <Badge tone={getAppreciationTrendTone(districtMetricsById.get(property.district_id)?.trend)}>
+          {formatAppreciationRate(districtMetricsById.get(property.district_id)?.currentRate)}
+        </Badge>
+      ) : (
+        "Sin indice"
+      ),
       type: <Badge tone="info">{formatPropertyType(property.type)}</Badge>,
       percent: `${percent.toLocaleString("es-MX", {
         minimumFractionDigits: 2,
@@ -163,8 +190,25 @@ export default async function PropertiesPage() {
   const summaryItems = [
     { label: "Propiedades directas", value: ownerships.length },
     { label: "Valor proporcional", value: formatMoney(totalValue) },
+    {
+      label: "Delegaciones",
+      value: new Set(ownerships.map((ownership) => ownership.properties?.district_id).filter(Boolean)).size
+    },
     { label: "Tipo de posesion", value: "Jugador" }
   ];
+
+  const ownedDistricts = Array.from(
+    new Map(
+      ownerships
+        .map((ownership) => ownership.properties)
+        .filter((property) => property?.district_id)
+        .map((property) => [property.district_id, property.districts])
+    ).entries()
+  ).map(([districtId, district]) => ({
+    id: districtId,
+    name: district?.name || "Sin delegacion",
+    metrics: districtMetricsById.get(districtId)
+  }));
 
   return (
     <main className={styles.page}>
@@ -214,6 +258,7 @@ export default async function PropertiesPage() {
             columns={[
               { key: "property", label: "Propiedad" },
               { key: "district", label: "Delegacion" },
+              { key: "appreciation", label: "Plusvalia zona" },
               { key: "type", label: "Tipo" },
               { key: "percent", label: "Porcentaje" },
               { key: "value", label: "Valor proporcional" }
@@ -231,6 +276,36 @@ export default async function PropertiesPage() {
             description="Cuando el gobierno registre una propiedad a tu nombre, aparecera aqui con porcentaje y valor proporcional."
             icon={LandPlot}
             title="Aun no tienes propiedades"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          description="Zonas donde tienes propiedades directas, con tendencia calculada contra la base registrada por gobierno."
+          eyebrow="Plusvalia"
+          title="Mis zonas"
+        />
+        {ownedDistricts.length ? (
+          <div className={styles.zoneGrid}>
+            {ownedDistricts.map((district) => (
+              <article key={district.id}>
+                <MapPinned size={18} />
+                <div>
+                  <strong>{district.name}</strong>
+                  <span>{formatAppreciationRate(district.metrics?.currentRate)} indice actual</span>
+                </div>
+                <Badge tone={getAppreciationTrendTone(district.metrics?.trend)}>
+                  {formatAppreciationTrend(district.metrics?.trend)}
+                </Badge>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            description="Cuando tengas propiedades, tambien veras aqui la plusvalia de sus delegaciones."
+            icon={MapPinned}
+            title="Sin zonas con propiedades"
           />
         )}
       </Card>
