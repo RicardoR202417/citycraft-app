@@ -39,6 +39,8 @@ mantenimiento tecnico y operativo de CityCraft App.
 - Consulta `/government` como consola interna de auditoria gubernamental:
   multas, decomisos, permisos, tierras, valoraciones, asistencias y pagos se
   muestran con actor, fecha, entidad afectada y razon operativa.
+- Registra snapshots de plusvalia por delegacion desde `/government`; cada
+  snapshot conserva indice anterior, nuevo indice, razon, factores y auditoria.
 
 ### Jugadores y organizaciones
 
@@ -179,6 +181,8 @@ Implementado:
   `government_fine`.
 - Flujo de decomisos con `government_property_seizures` y RPC
   `seize_property_for_government`.
+- Flujo de historial de plusvalia con `district_appreciation_history` y RPC
+  `record_district_appreciation_snapshot`.
 
 Pendiente:
 

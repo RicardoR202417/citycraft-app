@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { calculateDistrictAppreciation } from "../../../lib/appreciation";
 import { requireGovernmentProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
@@ -184,11 +185,104 @@ function friendlySeizureError(error) {
   return "No se pudo decomisar la propiedad. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlyAppreciationError(error) {
+  if (!error?.message) {
+    return "No se pudo registrar el snapshot de plusvalia. Intenta nuevamente.";
+  }
+
+  if (error.code === "23503") {
+    return "La delegacion seleccionada no existe.";
+  }
+
+  if (error.code === "23514") {
+    return "Revisa delegacion, indice calculado y razon antes de guardar.";
+  }
+
+  if (error.code === "42501") {
+    return "Solo el gobierno puede registrar snapshots de plusvalia.";
+  }
+
+  return "No se pudo registrar el snapshot de plusvalia. Revisa los datos e intenta nuevamente.";
+}
+
 function revalidateGovernmentPaths() {
   revalidatePath("/government");
   revalidatePath("/properties");
+  revalidatePath("/districts");
   revalidatePath("/transparency/government");
   revalidatePath("/economy");
+}
+
+export async function recordDistrictAppreciationSnapshot(_previousState = DEFAULT_STATE, formData) {
+  await requireGovernmentProfile("/government");
+  const districtId = getField(formData, "district_id");
+  const reason = getField(formData, "reason");
+
+  if (!districtId) {
+    return {
+      error: "Selecciona una delegacion.",
+      message: ""
+    };
+  }
+
+  if (reason.length < 3 || reason.length > 500) {
+    return {
+      error: "La razon debe tener entre 3 y 500 caracteres.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const [{ data: district, error: districtError }, { data: properties = [], error: propertiesError }] = await Promise.all([
+    supabase
+      .from("districts")
+      .select("id, name, slug, description, base_appreciation_rate")
+      .eq("id", districtId)
+      .maybeSingle(),
+    supabase
+      .from("properties")
+      .select("id, district_id, type, status, size_blocks, current_value")
+  ]);
+
+  if (districtError || propertiesError || !district) {
+    return {
+      error: "No se pudo calcular la plusvalia actual de la delegacion.",
+      message: ""
+    };
+  }
+
+  const metrics = calculateDistrictAppreciation(district, properties);
+  const factors = {
+    formula_version: "appreciation_v1",
+    trend: metrics.trend,
+    adjustment: metrics.adjustment,
+    property_count: metrics.propertyCount,
+    total_blocks: metrics.totalBlocks,
+    total_value: metrics.totalValue,
+    value_per_block: metrics.valuePerBlock,
+    factors: metrics.factors
+  };
+
+  const { error } = await supabase.rpc("record_district_appreciation_snapshot", {
+    p_district_id: districtId,
+    p_factors: factors,
+    p_new_index: metrics.currentRate,
+    p_reason: reason
+  });
+
+  if (error) {
+    return {
+      error: friendlyAppreciationError(error),
+      message: ""
+    };
+  }
+
+  revalidateGovernmentPaths();
+
+  return {
+    error: "",
+    message: "Snapshot de plusvalia registrado."
+  };
 }
 
 export async function createDistrict(_previousState = DEFAULT_STATE, formData) {

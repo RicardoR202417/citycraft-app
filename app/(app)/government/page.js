@@ -1,5 +1,11 @@
 import { ArrowLeft, Building2, CalendarCheck, ClipboardCheck, History, Landmark, LandPlot, MapPinned, Scale, ShieldAlert } from "lucide-react";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
+import {
+  calculateDistrictAppreciation,
+  formatAppreciationRate,
+  formatAppreciationTrend,
+  getAppreciationTrendTone
+} from "../../../lib/appreciation";
 import { requireGovernmentProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
 import {
@@ -13,6 +19,7 @@ import {
 } from "../../../lib/governmentAudit";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase/server";
 import { AttendanceForm } from "./AttendanceForm";
+import { DistrictAppreciationForm } from "./DistrictAppreciationForm";
 import { DistrictForm } from "./DistrictForm";
 import { FineForm } from "./FineForm";
 import { PermitDecisionForm } from "./PermitDecisionForm";
@@ -177,7 +184,9 @@ export default async function GovernmentPage() {
     .select("id, name, slug, description, base_appreciation_rate, created_at")
     .order("name", { ascending: true });
 
-  const { data: propertiesData } = await supabase.from("properties").select("id, name, district_id, parent_property_id");
+  const { data: propertiesData } = await supabase
+    .from("properties")
+    .select("id, name, district_id, parent_property_id, type, status, size_blocks, current_value");
 
   const { data: propertyRowsData } = await supabase
     .from("properties")
@@ -264,6 +273,12 @@ export default async function GovernmentPage() {
     .order("created_at", { ascending: false })
     .limit(100);
 
+  const { data: appreciationHistoryData } = await serviceSupabase
+    .from("district_appreciation_history")
+    .select("id, district_id, previous_index, new_index, change_amount, reason, factors, created_at, districts(name), profiles!district_appreciation_history_created_by_fkey(gamertag, display_name)")
+    .order("created_at", { ascending: false })
+    .limit(30);
+
   const { data: profilesData } = await serviceSupabase
     .from("profiles")
     .select("id, gamertag")
@@ -289,6 +304,7 @@ export default async function GovernmentPage() {
   const fines = asArray(finesData);
   const seizures = asArray(seizuresData);
   const auditEvents = asArray(auditEventsData).filter((event) => isGovernmentAuditAction(event.action)).slice(0, 40);
+  const appreciationHistory = asArray(appreciationHistoryData);
   const profiles = asArray(profilesData);
   const organizations = asArray(organizationsData);
   const fineTargetOrganizations = organizations.filter((organization) => organization.type !== "government");
@@ -304,6 +320,9 @@ export default async function GovernmentPage() {
   const debtFineTotal = fines
     .filter((fine) => fine.status === "debt")
     .reduce((total, fine) => total + Number(fine.outstanding_amount || 0), 0);
+  const districtAppreciationById = new Map(
+    districts.map((district) => [district.id, calculateDistrictAppreciation(district, properties)])
+  );
 
   const propertyCountByDistrict = properties.reduce((counts, property) => {
     counts[property.district_id] = (counts[property.district_id] || 0) + 1;
@@ -374,6 +393,33 @@ export default async function GovernmentPage() {
     reason: valuation.reason,
     createdAt: formatDate(valuation.created_at)
   }));
+
+  const districtAppreciationOptions = districts.map((district) => {
+    const metrics = districtAppreciationById.get(district.id);
+
+    return {
+      id: district.id,
+      name: district.name,
+      currentRate: metrics.currentRate,
+      trend: metrics.trend
+    };
+  });
+
+  const appreciationHistoryRows = appreciationHistory.map((record) => {
+    const trend = Number(record.change_amount || 0) > 0 ? "up" : Number(record.change_amount || 0) < 0 ? "down" : "stable";
+
+    return {
+      id: record.id,
+      district: record.districts?.name || "Delegacion no disponible",
+      previous: formatAppreciationRate(record.previous_index),
+      next: formatAppreciationRate(record.new_index),
+      change: <Badge tone={getAppreciationTrendTone(trend)}>{formatAppreciationRate(record.change_amount)}</Badge>,
+      trend: <Badge tone={getAppreciationTrendTone(record.factors?.trend)}>{formatAppreciationTrend(record.factors?.trend)}</Badge>,
+      reason: record.reason,
+      actor: record.profiles?.display_name || record.profiles?.gamertag || "Gobierno",
+      createdAt: formatDate(record.created_at)
+    };
+  });
 
   const attendanceRows = attendanceRecords.map((record) => ({
     id: record.id,
@@ -622,6 +668,15 @@ export default async function GovernmentPage() {
           description="Cada ajuste crea un registro historico y actualiza el valor vigente de la propiedad."
         />
         <ValuationForm properties={propertyRows} />
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Plusvalia"
+          title="Registrar snapshot de delegacion"
+          description="Guarda el indice actual calculado para una delegacion y conserva el indice anterior, nuevo indice, razon y factores."
+        />
+        <DistrictAppreciationForm districts={districtAppreciationOptions} />
       </Card>
 
       <Card className={styles.card}>
@@ -891,6 +946,36 @@ export default async function GovernmentPage() {
             description="Las propiedades nuevas ya generan una valoracion inicial; los cambios posteriores apareceran aqui."
             icon={Landmark}
             title="Sin valoraciones"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Plusvalia"
+          title="Historial de indices"
+          description="Snapshots persistentes por delegacion. Esta informacion alimentara reportes y tendencias futuras."
+        />
+        {appreciationHistoryRows.length ? (
+          <Table
+            columns={[
+              { key: "district", label: "Delegacion" },
+              { key: "previous", label: "Anterior" },
+              { key: "next", label: "Nuevo" },
+              { key: "change", label: "Cambio" },
+              { key: "trend", label: "Tendencia" },
+              { key: "reason", label: "Razon" },
+              { key: "actor", label: "Registro" },
+              { key: "createdAt", label: "Fecha" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={appreciationHistoryRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando registres snapshots de plusvalia por delegacion, apareceran aqui con indice anterior, nuevo indice y razon."
+            icon={History}
+            title="Sin historial de plusvalia"
           />
         )}
       </Card>

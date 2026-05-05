@@ -517,8 +517,8 @@ crear una nueva valoracion para mantener trazabilidad.
 
 La plusvalia visible para jugadores se calcula en aplicacion con
 `lib/appreciation.js` usando los datos actuales de `districts` y `properties`.
-No modifica valores de propiedades todavia; solo muestra un indice operativo
-para entender cada zona.
+No modifica valores de propiedades todavia; muestra un indice operativo para
+entender cada zona y permite al gobierno guardar snapshots auditables.
 
 Formula conceptual:
 
@@ -540,8 +540,31 @@ Reglas:
   delegacion.
 - `/properties` muestra la plusvalia de la delegacion de cada propiedad directa
   del jugador.
-- El historial persistente de indices queda separado para la historia
-  `CCAPP-62`.
+- El gobierno puede guardar snapshots desde `/government`.
+
+## Historial de plusvalia
+
+Archivo:
+
+```text
+supabase/migrations/20260430270000_district_appreciation_history.sql
+```
+
+Incluye:
+
+- Tabla `district_appreciation_history`.
+- RPC `record_district_appreciation_snapshot`.
+- Auditoria `government.district_appreciation_recorded`.
+
+Reglas:
+
+- Solo el gobierno puede registrar snapshots.
+- Cada fila conserva delegacion, indice anterior, indice nuevo, cambio
+  calculado, razon, factores y actor.
+- El indice anterior se toma del ultimo snapshot de la delegacion; si no existe,
+  usa `districts.base_appreciation_rate`.
+- El historial puede consultarse desde `/government`.
+- La tabla queda lista para alimentar reportes futuros por delegacion y fecha.
 
 ## Multas gubernamentales
 
