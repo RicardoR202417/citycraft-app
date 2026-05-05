@@ -2,6 +2,12 @@ import { ArrowLeft, Building2, Landmark, LandPlot, ReceiptText, Scale, ShieldChe
 import { notFound } from "next/navigation";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { formatMoney, formatWalletBalance } from "../../../lib/economy";
+import {
+  formatAuditEntityType,
+  formatGovernmentAuditAction,
+  getGovernmentAuditTone,
+  isGovernmentAuditAction
+} from "../../../lib/governmentAudit";
 import { getSupabaseServiceClient } from "../../../lib/supabase/server";
 import styles from "./page.module.css";
 
@@ -178,7 +184,7 @@ export default async function GovernmentTransparencyPage() {
   const propertyOwners = asArray(propertyOwnersData);
   const unownedLands = asArray(unownedLandsData).filter((land) => !asArray(land.property_owners).length);
   const ledgerEntries = asArray(ledgerEntriesData);
-  const auditEvents = asArray(auditEventsData);
+  const auditEvents = asArray(auditEventsData).filter((event) => isGovernmentAuditAction(event.action));
   const propertyValue = propertyOwners.reduce((total, owner) => {
     const property = owner.properties || {};
     return total + Number(property.current_value || 0) * (Number(owner.ownership_percent || 0) / 100);
@@ -267,8 +273,8 @@ export default async function GovernmentTransparencyPage() {
 
   const auditRows = auditEvents.map((event) => ({
     id: event.id,
-    action: <code>{event.action}</code>,
-    entity: event.entity_type,
+    action: <Badge tone={getGovernmentAuditTone(event.action)}>{formatGovernmentAuditAction(event.action)}</Badge>,
+    entity: formatAuditEntityType(event.entity_type),
     actor: event.profiles?.display_name || event.profiles?.gamertag || "Gobierno",
     createdAt: formatDate(event.created_at)
   }));

@@ -1,7 +1,16 @@
-import { ArrowLeft, Building2, CalendarCheck, ClipboardCheck, Landmark, LandPlot, MapPinned, Scale, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Building2, CalendarCheck, ClipboardCheck, History, Landmark, LandPlot, MapPinned, Scale, ShieldAlert } from "lucide-react";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireGovernmentProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
+import {
+  GOVERNMENT_AUDIT_COVERAGE,
+  formatAuditEntityType,
+  formatGovernmentAuditAction,
+  formatGovernmentAuditArea,
+  getGovernmentAuditReason,
+  getGovernmentAuditTone,
+  isGovernmentAuditAction
+} from "../../../lib/governmentAudit";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase/server";
 import { AttendanceForm } from "./AttendanceForm";
 import { DistrictForm } from "./DistrictForm";
@@ -249,6 +258,12 @@ export default async function GovernmentPage() {
     .order("created_at", { ascending: false })
     .limit(30);
 
+  const { data: auditEventsData } = await serviceSupabase
+    .from("audit_logs")
+    .select("id, action, entity_type, entity_id, metadata, created_at, profiles!audit_logs_actor_profile_id_fkey(gamertag, display_name)")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
   const { data: profilesData } = await serviceSupabase
     .from("profiles")
     .select("id, gamertag")
@@ -273,6 +288,7 @@ export default async function GovernmentPage() {
   const permitRequests = asArray(permitRequestsData);
   const fines = asArray(finesData);
   const seizures = asArray(seizuresData);
+  const auditEvents = asArray(auditEventsData).filter((event) => isGovernmentAuditAction(event.action)).slice(0, 40);
   const profiles = asArray(profilesData);
   const organizations = asArray(organizationsData);
   const fineTargetOrganizations = organizations.filter((organization) => organization.type !== "government");
@@ -480,6 +496,28 @@ export default async function GovernmentPage() {
     };
   });
 
+  const coverageRows = GOVERNMENT_AUDIT_COVERAGE.map((coverage) => ({
+    id: coverage.id,
+    area: coverage.area,
+    status: (
+      <Badge tone={coverage.status === "active" ? "success" : "warning"}>
+        {coverage.status === "active" ? "Auditado" : "Parcial"}
+      </Badge>
+    ),
+    actions: coverage.actions.map((action) => formatGovernmentAuditAction(action)).join(", "),
+    evidence: coverage.evidence
+  }));
+
+  const auditRows = auditEvents.map((event) => ({
+    id: event.id,
+    area: <Badge tone={getGovernmentAuditTone(event.action)}>{formatGovernmentAuditArea(event.action)}</Badge>,
+    action: formatGovernmentAuditAction(event.action),
+    entity: formatAuditEntityType(event.entity_type),
+    actor: event.profiles?.display_name || event.profiles?.gamertag || "Sistema",
+    reason: getGovernmentAuditReason(event),
+    createdAt: formatDate(event.created_at)
+  }));
+
   return (
     <main className={styles.page}>
       <PageHeader
@@ -635,6 +673,52 @@ export default async function GovernmentPage() {
             description="Registra la primera delegacion para empezar a ubicar propiedades."
             icon={Landmark}
             title="Sin delegaciones"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Auditoria"
+          title="Cobertura de acciones sensibles"
+          description="Mapa operativo de las acciones gubernamentales que deben dejar trazabilidad antes de afectar economia, permisos o propiedad."
+        />
+        <Table
+          columns={[
+            { key: "area", label: "Area" },
+            { key: "status", label: "Estado" },
+            { key: "actions", label: "Eventos" },
+            { key: "evidence", label: "Evidencia tecnica" }
+          ]}
+          getRowKey={(row) => row.id}
+          rows={coverageRows}
+        />
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Audit log"
+          title="Historial gubernamental interno"
+          description="Consulta interna de acciones auditadas con actor, fecha, entidad afectada y razon operativa."
+        />
+        {auditRows.length ? (
+          <Table
+            columns={[
+              { key: "area", label: "Area" },
+              { key: "action", label: "Accion" },
+              { key: "entity", label: "Entidad" },
+              { key: "actor", label: "Actor" },
+              { key: "reason", label: "Razon" },
+              { key: "createdAt", label: "Fecha" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={auditRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando se registren permisos, multas, decomisos, tierras, valoraciones o pagos, apareceran aqui."
+            icon={History}
+            title="Sin acciones auditadas"
           />
         )}
       </Card>

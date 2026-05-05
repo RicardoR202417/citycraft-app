@@ -36,6 +36,9 @@ mantenimiento tecnico y operativo de CityCraft App.
 - Puede decomisar propiedades desde `/government`; el sistema remueve
   propietarios previos, asigna 100% al gobierno, notifica afectados y conserva
   evidencia en auditoria.
+- Consulta `/government` como consola interna de auditoria gubernamental:
+  multas, decomisos, permisos, tierras, valoraciones, asistencias y pagos se
+  muestran con actor, fecha, entidad afectada y razon operativa.
 
 ### Jugadores y organizaciones
 
@@ -166,6 +169,8 @@ Implementado:
 - Seccion `/admin/audit` para consultar `audit_logs`, revisar `ledger_entries`
   y revertir acreditaciones mediante movimientos compensatorios.
 - Vista publica `/transparency/government` para transparencia del gobierno.
+- Vista interna `/government` con cobertura de auditoria y consulta reciente de
+  acciones sensibles.
 - Flujo de tierras sin dueño con `government_disposition`, RPCs auditados y
   exposicion publica en transparencia.
 - Flujo de permisos con `property_permit_requests`: los jugadores solicitan

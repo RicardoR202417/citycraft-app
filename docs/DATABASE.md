@@ -558,3 +558,32 @@ Reglas:
 - La propiedad queda con un propietario unico: gobierno al 100%.
 - Se crean notificaciones para propietarios previos y auditoria
   `government.property_seized`.
+
+## Auditoria gubernamental
+
+El panel `/government` consulta `audit_logs` para mostrar un historial interno
+de acciones sensibles con:
+
+- Actor (`actor_profile_id`).
+- Fecha (`created_at`).
+- Entidad afectada (`entity_type`, `entity_id`).
+- Razon operativa derivada de `metadata`, sin guardar secretos.
+
+Acciones gubernamentales cubiertas actualmente:
+
+- `government.fine_applied`: multas.
+- `government.property_seized`: decomisos.
+- `government.permit_request_approved` y
+  `government.permit_request_rejected`: permisos.
+- `government.unowned_land_created` y
+  `government.unowned_land_disposition_updated`: tierras sin dueño, venta o
+  subasta preparada.
+- `property.created`, `property.unit_created` y
+  `property.valuation_recorded`: registro inmobiliario administrado por
+  gobierno.
+- `attendance.recorded`, `daily_payout.created` y
+  `organization_daily_payout.created`: asistencia y pagos.
+
+La vista publica `/transparency/government` reutiliza estos eventos con datos
+filtrados: muestra nombre legible de la accion, entidad, actor y fecha, pero no
+expone `metadata` completo.
