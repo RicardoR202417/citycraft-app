@@ -446,8 +446,14 @@ Reglas:
 - La primera puja debe cubrir el precio inicial de la subasta.
 - Las siguientes pujas deben superar la puja lider vigente.
 - Cuando una nueva puja lider entra, la anterior pasa a `outbid`.
-- Cierre automatico, notificaciones de puja superada y liquidacion atomica se
-  implementan en historias posteriores del epic de subastas.
+- `create_auction_bid` crea notificaciones `auction_bid_created` para el
+  vendedor y `auction_bid_outbid` para el pujador superado.
+- La ruta privada `/notifications` muestra avisos personales y de
+  organizaciones donde el jugador participa activamente.
+- La RPC `mark_notification_read` permite marcar avisos como leidos sin exponer
+  updates directos sobre la tabla.
+- Cierre automatico y liquidacion atomica se implementan en historias
+  posteriores del epic de subastas y reutilizaran la misma bandeja.
 
 ## Billeteras
 
