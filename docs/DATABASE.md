@@ -265,6 +265,36 @@ Reglas:
   servidor solo despues de leer el registro publico.
 - Las publicaciones privadas o futuras no aparecen en el feed anonimo.
 
+## Mercado y ventas
+
+Archivo:
+
+```text
+supabase/migrations/20260430300000_market_sale_listings.sql
+```
+
+Incluye:
+
+- Tipo `market_listing_status`: `active`, `paused`, `sold`, `cancelled`.
+- Tabla `market_listings` para publicar propiedades o porcentajes en venta.
+- RPC `create_market_sale_listing`.
+- Funcion `calculate_property_owner_available_percent`.
+- Auditoria `market.listing_created`.
+
+Reglas:
+
+- La publicacion siempre apunta a una fila real de `property_owners`.
+- Un jugador solo puede publicar participaciones directas a su nombre.
+- Una organizacion solo puede publicar si el actor es `owner` o `admin` activo.
+- El porcentaje publicado no puede superar el porcentaje disponible.
+- Las publicaciones `active` y `paused` reservan porcentaje hasta que se vendan
+  o cancelen.
+- Si el propietario tiene 100%, puede publicar el 100% como venta completa.
+- Las publicaciones guardan precio base, moneda, vendedor, propiedad y estado.
+- La ruta privada `/market` permite crear publicaciones y listar ventas activas.
+- Ofertas, contraofertas, validacion de saldo y cierre atomico se agregan en
+  las siguientes historias del epic de mercado.
+
 ## Billeteras
 
 Archivo:

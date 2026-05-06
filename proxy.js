@@ -56,6 +56,7 @@ export const config = {
     "/properties/:path*",
     "/districts/:path*",
     "/organizations/:path*",
+    "/market/:path*",
     "/economy/:path*",
     "/government/:path*",
     "/admin/:path*",
