@@ -1,0 +1,68 @@
+.page {
+  display: grid;
+  gap: 22px;
+  min-height: 100vh;
+  padding: var(--space-page);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 18px;
+}
+
+.card,
+.auctionCard {
+  padding: clamp(18px, 3vw, 26px);
+}
+
+.card > * + * {
+  margin-top: 18px;
+}
+
+.auctionCard {
+  display: grid;
+  align-content: end;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--detail) 16%, transparent), transparent),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.auctionCard svg {
+  color: var(--detail);
+}
+
+.auctionCard strong {
+  color: var(--accent-strong);
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 1;
+}
+
+.auctionCard span,
+.nameCell span,
+.timeCell span {
+  color: var(--muted);
+}
+
+.nameCell,
+.timeCell {
+  display: grid;
+  gap: 2px;
+}
+
+.nameCell strong,
+.nameCell span,
+.timeCell strong,
+.timeCell span {
+  display: block;
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -409,6 +409,39 @@ Reglas:
 - La publicacion queda `sold` y otras ofertas pendientes de la misma publicacion
   pasan a `expired`.
 
+## Subastas
+
+Archivo:
+
+```text
+supabase/migrations/20260430350000_auction_foundation.sql
+```
+
+Incluye:
+
+- Tipo `auction_status`: `active`, `cancelled`, `settled`, `expired`.
+- Tabla `auctions` para publicar subastas de propiedades o porcentajes.
+- RPC `create_auction`.
+- Funcion `calculate_property_owner_reserved_percent`.
+- Actualizacion de `calculate_property_owner_available_percent` para restar
+  ventas activas/pausadas y subastas activas vigentes.
+- Auditoria `auction.created`.
+
+Reglas:
+
+- Una subasta siempre apunta a una fila real de `property_owners` al momento de
+  crearse.
+- Un jugador solo puede subastar participaciones directas a su nombre.
+- Una organizacion solo puede subastar si el actor es `owner` o `admin` activo.
+- El porcentaje subastado no puede superar el porcentaje disponible.
+- Las subastas `active` y con `ends_at > now()` reservan porcentaje junto con
+  las ventas activas o pausadas.
+- Las duraciones permitidas de la primera version son `20` minutos, `10` horas,
+  `1` dia y `1` semana.
+- La ruta privada `/auctions` permite crear subastas y listar subastas activas.
+- Pujas, validacion de saldo y cierre atomico se implementan en historias
+  posteriores del epic de subastas.
+
 ## Billeteras
 
 Archivo:

@@ -1,4 +1,4 @@
-import { Building2, LandPlot, Landmark, LogOut, MapPinned, ShieldCheck, Store, UserRoundPen, WalletCards } from "lucide-react";
+import { Building2, Gavel, LandPlot, Landmark, LogOut, MapPinned, ShieldCheck, Store, UserRoundPen, WalletCards } from "lucide-react";
 import { Badge, Button, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader } from "../../../components/ui";
 import { getProfileVisibility, isGlobalAdmin, isGovernmentMember, requireProfile } from "../../../lib/auth";
 import { formatWalletBalance } from "../../../lib/economy";
@@ -63,6 +63,9 @@ export default async function DashboardPage() {
             </LinkButton>
             <LinkButton href="/market" icon={Store} variant="secondary">
               Mercado
+            </LinkButton>
+            <LinkButton href="/auctions" icon={Gavel} variant="secondary">
+              Subastas
             </LinkButton>
             <LinkButton href="/economy" icon={WalletCards} variant="secondary">
               Economia
