@@ -186,7 +186,11 @@ export default async function GovernmentPage() {
 
   const { data: propertiesData } = await supabase
     .from("properties")
-    .select("id, name, district_id, parent_property_id, type, status, size_blocks, current_value");
+    .select("id, name, district_id, parent_property_id, type, status, size_blocks, current_value, created_at, updated_at");
+
+  const { data: propertyOwnersData } = await serviceSupabase
+    .from("property_owners")
+    .select("property_id, owner_type, profile_id, organization_id, ownership_percent");
 
   const { data: propertyRowsData } = await supabase
     .from("properties")
@@ -292,6 +296,7 @@ export default async function GovernmentPage() {
 
   const districts = asArray(districtsData);
   const properties = asArray(propertiesData);
+  const propertyOwners = asArray(propertyOwnersData);
   const propertyRows = asArray(propertyRowsData);
   const parentProperties = asArray(parentPropertiesData);
   const seizureProperties = asArray(seizurePropertiesData);
@@ -320,8 +325,22 @@ export default async function GovernmentPage() {
   const debtFineTotal = fines
     .filter((fine) => fine.status === "debt")
     .reduce((total, fine) => total + Number(fine.outstanding_amount || 0), 0);
+  const latestAppreciationByDistrict = new Map();
+
+  for (const record of appreciationHistory) {
+    if (!latestAppreciationByDistrict.has(record.district_id)) {
+      latestAppreciationByDistrict.set(record.district_id, record);
+    }
+  }
+
   const districtAppreciationById = new Map(
-    districts.map((district) => [district.id, calculateDistrictAppreciation(district, properties)])
+    districts.map((district) => [
+      district.id,
+      calculateDistrictAppreciation(district, properties, {
+        owners: propertyOwners,
+        previousIndex: latestAppreciationByDistrict.get(district.id)?.new_index
+      })
+    ])
   );
 
   const propertyCountByDistrict = properties.reduce((counts, property) => {
@@ -401,6 +420,8 @@ export default async function GovernmentPage() {
       id: district.id,
       name: district.name,
       currentRate: metrics.currentRate,
+      limitApplied: metrics.limitApplied,
+      rawIndex: metrics.rawIndex,
       trend: metrics.trend
     };
   });

@@ -233,7 +233,12 @@ export async function recordDistrictAppreciationSnapshot(_previousState = DEFAUL
   }
 
   const supabase = await createSupabaseServerClient();
-  const [{ data: district, error: districtError }, { data: properties = [], error: propertiesError }] = await Promise.all([
+  const [
+    { data: district, error: districtError },
+    { data: properties = [], error: propertiesError },
+    { data: propertyOwners = [], error: ownersError },
+    { data: latestHistory, error: historyError }
+  ] = await Promise.all([
     supabase
       .from("districts")
       .select("id, name, slug, description, base_appreciation_rate")
@@ -241,21 +246,39 @@ export async function recordDistrictAppreciationSnapshot(_previousState = DEFAUL
       .maybeSingle(),
     supabase
       .from("properties")
-      .select("id, district_id, type, status, size_blocks, current_value")
+      .select("id, district_id, type, status, size_blocks, current_value, created_at, updated_at"),
+    supabase
+      .from("property_owners")
+      .select("property_id, owner_type, profile_id, organization_id, ownership_percent"),
+    supabase
+      .from("district_appreciation_history")
+      .select("new_index")
+      .eq("district_id", districtId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
   ]);
 
-  if (districtError || propertiesError || !district) {
+  if (districtError || propertiesError || ownersError || historyError || !district) {
     return {
       error: "No se pudo calcular la plusvalia actual de la delegacion.",
       message: ""
     };
   }
 
-  const metrics = calculateDistrictAppreciation(district, properties);
+  const metrics = calculateDistrictAppreciation(district, properties, {
+    owners: propertyOwners,
+    previousIndex: latestHistory?.new_index
+  });
   const factors = {
-    formula_version: "appreciation_v1",
+    formula_version: "appreciation_v2",
     trend: metrics.trend,
     adjustment: metrics.adjustment,
+    base_rate: metrics.baseRate,
+    limit_applied: metrics.limitApplied,
+    max_change: metrics.maxChange,
+    previous_index: metrics.previousIndex,
+    raw_index: metrics.rawIndex,
     property_count: metrics.propertyCount,
     total_blocks: metrics.totalBlocks,
     total_value: metrics.totalValue,

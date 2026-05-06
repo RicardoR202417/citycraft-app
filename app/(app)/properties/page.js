@@ -8,7 +8,7 @@ import {
 } from "../../../lib/appreciation";
 import { requireProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
-import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase/server";
 import { PermitRequestForm } from "./PermitRequestForm";
 import styles from "./page.module.css";
 
@@ -76,6 +76,7 @@ function formatDate(value) {
 export default async function PropertiesPage() {
   const profile = await requireProfile("/properties");
   const supabase = await createSupabaseServerClient();
+  const serviceSupabase = getSupabaseServiceClient();
 
   const { data: ownerships = [] } = await supabase
     .from("property_owners")
@@ -105,17 +106,44 @@ export default async function PropertiesPage() {
     .order("created_at", { ascending: false })
     .limit(20);
 
-  const [{ data: districts = [] }, { data: districtProperties = [] }] = await Promise.all([
+  const [
+    { data: districts = [] },
+    { data: districtProperties = [] },
+    { data: propertyOwners = [] },
+    { data: appreciationHistory = [] }
+  ] = await Promise.all([
     supabase
       .from("districts")
       .select("id, name, slug, description, base_appreciation_rate"),
     supabase
       .from("properties")
-      .select("id, district_id, type, status, size_blocks, current_value")
+      .select("id, district_id, type, status, size_blocks, current_value, created_at, updated_at"),
+    serviceSupabase
+      .from("property_owners")
+      .select("property_id, owner_type, profile_id, organization_id, ownership_percent"),
+    serviceSupabase
+      .from("district_appreciation_history")
+      .select("district_id, new_index, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200)
   ]);
 
+  const latestAppreciationByDistrict = new Map();
+
+  for (const record of appreciationHistory) {
+    if (!latestAppreciationByDistrict.has(record.district_id)) {
+      latestAppreciationByDistrict.set(record.district_id, record);
+    }
+  }
+
   const districtMetricsById = new Map(
-    districts.map((district) => [district.id, calculateDistrictAppreciation(district, districtProperties)])
+    districts.map((district) => [
+      district.id,
+      calculateDistrictAppreciation(district, districtProperties, {
+        owners: propertyOwners,
+        previousIndex: latestAppreciationByDistrict.get(district.id)?.new_index
+      })
+    ])
   );
 
   const totalValue = ownerships.reduce((sum, ownership) => {

@@ -21,7 +21,8 @@ export function DistrictAppreciationForm({ districts }) {
           <option value="">Seleccionar</option>
           {districts.map((district) => (
             <option key={district.id} value={district.id}>
-              {district.name} - {formatAppreciationRate(district.currentRate)} ({formatAppreciationTrend(district.trend)})
+              {district.name} - {formatAppreciationRate(district.currentRate)} ({formatAppreciationTrend(district.trend)}
+              {district.limitApplied ? `, limitado desde ${formatAppreciationRate(district.rawIndex)}` : ""})
             </option>
           ))}
         </select>

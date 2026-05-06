@@ -525,22 +525,32 @@ Formula conceptual:
 ```text
 indice_actual =
   districts.base_appreciation_rate
-  + ajuste_por_desarrollo_activo
+  + ajuste_por_construcciones_y_proyectos
   + ajuste_por_servicios_e_infraestructura
+  + ajuste_por_actividad_reciente
+  +/- ajuste_por_concentracion_economica
   + ajuste_por_valor_por_bloque
   - ajuste_por_terreno_sin_desarrollar
-  - ajuste_por_propiedades_inactivas
+  - ajuste_por_demoliciones_e_inactividad
 ```
 
 Reglas:
 
 - Los ajustes son pequenos y acotados para evitar cambios bruscos.
-- La tendencia compara `indice_actual` contra `base_appreciation_rate`.
+- El recalculo compara contra el ultimo snapshot persistido; si no existe, usa
+  `districts.base_appreciation_rate`.
+- El cambio maximo por snapshot es `2.5` puntos porcentuales.
+- El indice final siempre se limita al rango `-100` a `100`.
+- La tendencia compara `indice_actual` contra el ultimo indice usado como base
+  del recalculo.
 - `/districts` muestra indice actual, factores principales y tendencia por
   delegacion.
 - `/properties` muestra la plusvalia de la delegacion de cada propiedad directa
   del jugador.
 - El gobierno puede guardar snapshots desde `/government`.
+- La version de formula actual es `appreciation_v2` y guarda en `factors` el
+  indice bruto, limite aplicado, cambio maximo, valor total, bloques, tendencia
+  y factores de explicacion.
 
 ## Historial de plusvalia
 
