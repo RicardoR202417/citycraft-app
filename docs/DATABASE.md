@@ -23,6 +23,7 @@ SUPABASE_PROJECT_REF="your-project-ref"
 SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 SUPABASE_DB_PASSWORD="your-database-password"
 DATABASE_URL="postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres"
+CRON_SECRET="your-random-cron-secret"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
@@ -31,6 +32,8 @@ Reglas:
 - `NEXT_PUBLIC_*` puede usarse en cliente.
 - `SUPABASE_SERVICE_ROLE_KEY` solo puede usarse en servidor o scripts seguros.
 - `DATABASE_URL` y `SUPABASE_DB_PASSWORD` nunca deben exponerse al navegador.
+- `CRON_SECRET` protege endpoints programados como cierre automatico de
+  subastas; debe configurarse tambien en Vercel Production.
 - `.env.local` esta ignorado por Git.
 
 ## Migracion inicial
@@ -452,8 +455,17 @@ Reglas:
   organizaciones donde el jugador participa activamente.
 - La RPC `mark_notification_read` permite marcar avisos como leidos sin exponer
   updates directos sobre la tabla.
-- Cierre automatico y liquidacion atomica se implementan en historias
-  posteriores del epic de subastas y reutilizaran la misma bandeja.
+- La RPC `close_expired_auctions` cierra subastas activas vencidas, determina
+  ganador por la puja `leading`, genera auditoria `auction.closed` y notifica
+  al vendedor y participantes.
+- El endpoint `/api/cron/close-auctions` ejecuta esa RPC con `service_role` y
+  exige `Authorization: Bearer <CRON_SECRET>`.
+- `vercel.json` programa el cierre diario a las `06:00 UTC`, compatible con
+  Vercel Hobby. Si se requiere cierre con precision de minutos para subastas de
+  20 minutos o 10 horas, se puede usar un plan/proveedor de cron con mayor
+  frecuencia contra el mismo endpoint.
+- La liquidacion atomica de dinero y propiedad se implementa en la siguiente
+  historia del epic de subastas.
 
 ## Billeteras
 
