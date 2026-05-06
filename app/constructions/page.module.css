@@ -1,0 +1,228 @@
+.page {
+  display: grid;
+  gap: 24px;
+  min-height: 100vh;
+  padding: var(--space-page);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.summaryCard {
+  display: grid;
+  gap: 10px;
+  align-content: end;
+  min-height: 150px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent),
+    var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.summaryCard svg {
+  color: var(--accent);
+}
+
+.summaryCard strong {
+  color: var(--accent-strong);
+  font-size: clamp(2rem, 5vw, 3.8rem);
+  line-height: 1;
+}
+
+.summaryCard span,
+.postBody p,
+.postMeta,
+.authorLine,
+.postBody small,
+.pagination span {
+  color: var(--muted);
+}
+
+.feedSection {
+  display: grid;
+  gap: 18px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.postCard {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.cover {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent),
+    var(--surface-subtle);
+}
+
+.cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.coverFallback {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: var(--accent);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.postBody {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.postMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.88rem;
+}
+
+.postMeta span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.postMeta svg {
+  flex: 0 0 auto;
+}
+
+.postBody h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 1.18rem;
+  line-height: 1.18;
+}
+
+.postBody p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.authorLine {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.authorLine span {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+
+.authorLine span {
+  display: inline-grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+
+.authorLine strong {
+  color: var(--foreground);
+  font-size: 0.95rem;
+}
+
+.postBody small {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.emptyCard {
+  padding: 28px;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination a,
+.pagination span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 108px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0 14px;
+  text-decoration: none;
+}
+
+.pagination a {
+  background: var(--surface);
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+
+.pagination span {
+  background: var(--surface-subtle);
+}
+
+.pagination strong {
+  color: var(--foreground);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 1060px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .summary,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination {
+    justify-content: stretch;
+  }
+
+  .pagination a,
+  .pagination span {
+    flex: 1 1 120px;
+  }
+
+  .pagination strong {
+    order: -1;
+    flex: 1 0 100%;
+    text-align: center;
+  }
+}

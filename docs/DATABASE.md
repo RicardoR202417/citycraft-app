@@ -240,6 +240,31 @@ Reglas:
   validar la visibilidad del registro en `media_assets`.
 - El cliente no debe construir URLs publicas manualmente para objetos privados.
 
+## Construcciones publicas
+
+Archivo:
+
+```text
+supabase/migrations/20260430290000_public_construction_posts.sql
+```
+
+Incluye:
+
+- Tabla `construction_posts` para publicaciones del foro/exposicion.
+- Vista `public_construction_posts` para visitantes anonimos.
+- Politicas RLS para mostrar solo publicaciones publicas y publicadas.
+- Relaciones opcionales con propiedad, delegacion e imagen de Storage.
+
+Reglas:
+
+- `/constructions` carga sin login usando la llave anonima de Supabase.
+- Solo aparecen publicaciones con `is_public = true` y `published_at <= now()`.
+- La vista publica expone titulo, resumen, autor visible, delegacion,
+  propiedad relacionada e imagen aprobada.
+- Si la portada vive en Storage, la aplicacion genera una URL firmada desde
+  servidor solo despues de leer el registro publico.
+- Las publicaciones privadas o futuras no aparecen en el feed anonimo.
+
 ## Billeteras
 
 Archivo:

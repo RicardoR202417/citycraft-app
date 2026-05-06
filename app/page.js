@@ -2,14 +2,46 @@ import Link from "next/link";
 import styles from "./page.module.css";
 
 const modules = [
-  "Foro publico",
-  "Registro inmobiliario",
-  "Organizaciones",
-  "Gobierno",
-  "Mercado",
-  "Subastas",
-  "Asistencia",
-  "Plusvalia"
+  {
+    description: "Feed abierto para mostrar construcciones publicas del Realm.",
+    href: "/constructions",
+    title: "Foro publico"
+  },
+  {
+    description: "Propiedades, delegaciones, valores y propietarios auditables.",
+    href: "/login",
+    title: "Registro inmobiliario"
+  },
+  {
+    description: "Sociedades privadas, porcentajes y patrimonio compartido.",
+    href: "/login",
+    title: "Organizaciones"
+  },
+  {
+    description: "Transparencia, tierras, multas, permisos y acciones publicas.",
+    href: "/transparency/government",
+    title: "Gobierno"
+  },
+  {
+    description: "Ventas, ofertas y subastas futuras para mover la economia.",
+    href: "/login",
+    title: "Mercado"
+  },
+  {
+    description: "Pujas por tiempo y cierres atomicos de propiedades.",
+    href: "/login",
+    title: "Subastas"
+  },
+  {
+    description: "Registro gubernamental de asistencia y pagos diarios.",
+    href: "/login",
+    title: "Asistencia"
+  },
+  {
+    description: "Indices por delegacion para entender el valor de cada zona.",
+    href: "/login",
+    title: "Plusvalia"
+  }
 ];
 
 export default function Home() {
@@ -25,6 +57,7 @@ export default function Home() {
             economia creativa entre jugadores.
           </p>
           <div className={styles.heroActions}>
+            <Link href="/constructions">Ver construcciones</Link>
             <Link href="/transparency/government">Ver gobierno</Link>
             <Link href="/login">Iniciar sesion</Link>
           </div>
@@ -39,12 +72,10 @@ export default function Home() {
 
       <section className={styles.grid} aria-label="Modulos principales">
         {modules.map((module) => (
-          <article className={styles.card} key={module}>
-            <h2>{module}</h2>
-            <p>
-              Modulo planificado en el documento base del proyecto para crecer
-              de forma ordenada y auditable.
-            </p>
+          <article className={styles.card} key={module.title}>
+            <h2>{module.title}</h2>
+            <p>{module.description}</p>
+            <Link href={module.href}>Abrir</Link>
           </article>
         ))}
       </section>
