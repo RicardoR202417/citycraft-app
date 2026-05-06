@@ -547,6 +547,9 @@ Reglas:
   delegacion.
 - `/properties` muestra la plusvalia de la delegacion de cada propiedad directa
   del jugador.
+- `/properties` tambien cruza `property_valuations` con el ultimo snapshot de
+  `district_appreciation_history` para explicar valor anterior, valor actual,
+  cambio proporcional, impacto estimado de plusvalia y razon auditable.
 - El gobierno puede guardar snapshots desde `/government`.
 - La version de formula actual es `appreciation_v2` y guarda en `factors` el
   indice bruto, limite aplicado, cambio maximo, valor total, bloques, tendencia

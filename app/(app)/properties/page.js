@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, ClipboardCheck, LandPlot, MapPinned, Percent } from "lucide-react";
+import { ArrowLeft, Building2, ClipboardCheck, History, LandPlot, MapPinned, Percent } from "lucide-react";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import {
   calculateDistrictAppreciation,
@@ -73,6 +73,13 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function formatSignedMoney(value) {
+  const amount = Number(value || 0);
+  const sign = amount > 0 ? "+" : "";
+
+  return `${sign}${formatMoney(amount)}`;
+}
+
 export default async function PropertiesPage() {
   const profile = await requireProfile("/properties");
   const supabase = await createSupabaseServerClient();
@@ -106,11 +113,16 @@ export default async function PropertiesPage() {
     .order("created_at", { ascending: false })
     .limit(20);
 
+  const ownedProperties = ownerships.map((ownership) => ownership.properties).filter(Boolean);
+  const ownedPropertyIds = ownedProperties.map((property) => property.id);
+  const ownedDistrictIds = [...new Set(ownedProperties.map((property) => property.district_id).filter(Boolean))];
+
   const [
     { data: districts = [] },
     { data: districtProperties = [] },
     { data: propertyOwners = [] },
-    { data: appreciationHistory = [] }
+    { data: appreciationHistory = [] },
+    { data: valuationHistory = [] }
   ] = await Promise.all([
     supabase
       .from("districts")
@@ -123,9 +135,18 @@ export default async function PropertiesPage() {
       .select("property_id, owner_type, profile_id, organization_id, ownership_percent"),
     serviceSupabase
       .from("district_appreciation_history")
-      .select("district_id, new_index, created_at")
+      .select("id, district_id, previous_index, new_index, change_amount, reason, factors, created_at")
+      .in("district_id", ownedDistrictIds.length ? ownedDistrictIds : ["00000000-0000-0000-0000-000000000000"])
       .order("created_at", { ascending: false })
-      .limit(200)
+      .limit(200),
+    ownedPropertyIds.length
+      ? serviceSupabase
+          .from("property_valuations")
+          .select("id, property_id, value, reason, created_at")
+          .in("property_id", ownedPropertyIds)
+          .order("created_at", { ascending: false })
+          .limit(200)
+      : { data: [] }
   ]);
 
   const latestAppreciationByDistrict = new Map();
@@ -134,6 +155,15 @@ export default async function PropertiesPage() {
     if (!latestAppreciationByDistrict.has(record.district_id)) {
       latestAppreciationByDistrict.set(record.district_id, record);
     }
+  }
+
+  const valuationsByProperty = new Map();
+
+  for (const valuation of valuationHistory) {
+    valuationsByProperty.set(valuation.property_id, [
+      ...(valuationsByProperty.get(valuation.property_id) || []),
+      valuation
+    ]);
   }
 
   const districtMetricsById = new Map(
@@ -214,6 +244,65 @@ export default async function PropertiesPage() {
     createdAt: formatDate(request.created_at),
     decidedAt: formatDate(request.decided_at)
   }));
+
+  const valueExplanationRows = ownerships.map((ownership) => {
+    const property = ownership.properties || {};
+    const percent = Number(ownership.ownership_percent || 0);
+    const propertyValuations = valuationsByProperty.get(property.id) || [];
+    const latestValuation = propertyValuations[0];
+    const previousValuation = propertyValuations[1];
+    const currentValue = Number(property.current_value || latestValuation?.value || 0);
+    const previousValue = previousValuation ? Number(previousValuation.value || 0) : null;
+    const proportionalCurrent = currentValue * (percent / 100);
+    const proportionalPrevious = previousValue !== null ? previousValue * (percent / 100) : null;
+    const proportionalDelta = proportionalPrevious !== null ? proportionalCurrent - proportionalPrevious : null;
+    const latestAppreciation = property.district_id ? latestAppreciationByDistrict.get(property.district_id) : null;
+    const appreciationChange = Number(latestAppreciation?.change_amount || 0);
+    const appreciationImpact = currentValue * (percent / 100) * (appreciationChange / 100);
+
+    return {
+      id: ownership.id,
+      property: (
+        <div className={styles.propertyName}>
+          <strong>{property.name || "Propiedad no disponible"}</strong>
+          <span>{property.districts?.name || "Sin delegacion"}</span>
+        </div>
+      ),
+      previousValue: proportionalPrevious !== null ? formatMoney(proportionalPrevious) : "Sin valor anterior",
+      currentValue: formatMoney(proportionalCurrent),
+      valueChange:
+        proportionalDelta !== null ? (
+          <Badge tone={proportionalDelta > 0 ? "success" : proportionalDelta < 0 ? "danger" : "neutral"}>
+            {formatSignedMoney(proportionalDelta)}
+          </Badge>
+        ) : (
+          <Badge tone="neutral">Sin cambio previo</Badge>
+        ),
+      appreciation: latestAppreciation ? (
+        <div className={styles.propertyName}>
+          <strong>{formatAppreciationRate(appreciationChange)}</strong>
+          <span>{latestAppreciation.reason}</span>
+        </div>
+      ) : (
+        "Sin snapshot"
+      ),
+      estimatedImpact: latestAppreciation ? (
+        <Badge tone={appreciationImpact > 0 ? "success" : appreciationImpact < 0 ? "danger" : "neutral"}>
+          {formatSignedMoney(appreciationImpact)}
+        </Badge>
+      ) : (
+        <Badge tone="neutral">No calculado</Badge>
+      ),
+      audit: latestValuation ? (
+        <div className={styles.propertyName}>
+          <strong>{latestValuation.reason}</strong>
+          <span>{formatDate(latestValuation.created_at)}</span>
+        </div>
+      ) : (
+        "Sin historial"
+      )
+    };
+  });
 
   const summaryItems = [
     { label: "Propiedades directas", value: ownerships.length },
@@ -334,6 +423,35 @@ export default async function PropertiesPage() {
             description="Cuando tengas propiedades, tambien veras aqui la plusvalia de sus delegaciones."
             icon={MapPinned}
             title="Sin zonas con propiedades"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          description="Cruza el historial de valoraciones de tus propiedades con el ultimo snapshot de plusvalia de su delegacion."
+          eyebrow="Auditoria"
+          title="Por que cambio mi valor"
+        />
+        {valueExplanationRows.length ? (
+          <Table
+            columns={[
+              { key: "property", label: "Propiedad" },
+              { key: "previousValue", label: "Valor anterior" },
+              { key: "currentValue", label: "Valor actual" },
+              { key: "valueChange", label: "Cambio" },
+              { key: "appreciation", label: "Plusvalia zona" },
+              { key: "estimatedImpact", label: "Impacto estimado" },
+              { key: "audit", label: "Ultima valoracion" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={valueExplanationRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando tengas propiedades y valoraciones registradas, apareceran aqui las razones de cambio."
+            icon={History}
+            title="Sin historial de valor"
           />
         )}
       </Card>
