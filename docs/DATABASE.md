@@ -209,6 +209,37 @@ El repositorio es publico. Por eso:
 - Encapsular operaciones economicas en RPC transaccionales.
 - Registrar dinero en `ledger_entries` y acciones sensibles en `audit_logs`.
 
+## Storage de imagenes
+
+Archivo:
+
+```text
+supabase/migrations/20260430280000_construction_image_storage.sql
+```
+
+Incluye:
+
+- Bucket privado `construction-images` en Supabase Storage.
+- Tabla `media_assets` para registrar metadatos auditables de cada imagen.
+- Politicas de Storage para impedir escrituras anonimas.
+- Politicas RLS para separar imagenes privadas, publicas, gobierno y
+  administrador global.
+- Helper de aplicacion en `lib/storage/constructionImages.js`.
+
+Reglas:
+
+- El bucket inicia como privado para evitar exposicion accidental de imagenes.
+- Los usuarios autenticados solo pueden subir objetos dentro de una carpeta con
+  su propio UUID de perfil: `<profile_id>/<archivo>`.
+- El tamano maximo recomendado por imagen es `5 MB`.
+- Tipos permitidos: `image/jpeg`, `image/png`, `image/webp`, `image/gif`.
+- Cada objeto debe tener una fila correspondiente en `media_assets`.
+- `media_assets.is_public = true` es la fuente para decidir si una imagen puede
+  aparecer en foro publico, perfiles publicos o vistas de exposicion.
+- Las URLs publicas o firmadas solo deben generarse desde servidor despues de
+  validar la visibilidad del registro en `media_assets`.
+- El cliente no debe construir URLs publicas manualmente para objetos privados.
+
 ## Billeteras
 
 Archivo:
