@@ -460,12 +460,20 @@ Reglas:
   al vendedor y participantes.
 - El endpoint `/api/cron/close-auctions` ejecuta esa RPC con `service_role` y
   exige `Authorization: Bearer <CRON_SECRET>`.
+- Al cerrar una subasta con puja ganadora, `close_expired_auctions` intenta
+  liquidarla en la misma transaccion: descuenta la wallet ganadora, acredita la
+  wallet vendedora, transfiere el porcentaje en `property_owners`, crea ledger
+  `auction_settlement`, cambia la subasta a `settled` y marca la puja ganadora
+  como `settled`.
+- Si la wallet ganadora ya no tiene saldo suficiente, si falta alguna wallet o
+  si el vendedor ya no conserva el porcentaje necesario, no se mueve dinero ni
+  propiedad; la puja ganadora pasa a `failed`, la subasta queda `expired`, y se
+  crean notificaciones `auction_settlement_failed` con auditoria
+  `auction.settlement_failed`.
 - `vercel.json` programa el cierre diario a las `06:00 UTC`, compatible con
   Vercel Hobby. Si se requiere cierre con precision de minutos para subastas de
   20 minutos o 10 horas, se puede usar un plan/proveedor de cron con mayor
   frecuencia contra el mismo endpoint.
-- La liquidacion atomica de dinero y propiedad se implementa en la siguiente
-  historia del epic de subastas.
 
 ## Billeteras
 
