@@ -54,6 +54,26 @@ function friendlyMarketOfferError(error) {
   return "No se pudo enviar la oferta. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlyMarketOfferResponseError(error) {
+  if (!error?.message) {
+    return "No se pudo responder la oferta. Intenta nuevamente.";
+  }
+
+  if (error.code === "23514") {
+    return "Solo puedes responder ofertas pendientes. Si contraofertas, el monto debe ser mayor a 0.";
+  }
+
+  if (error.code === "42501") {
+    return "Solo el vendedor o administradores de la organizacion pueden responder esta oferta.";
+  }
+
+  if (error.code === "23503") {
+    return "No se encontro la oferta o la publicacion relacionada.";
+  }
+
+  return "No se pudo responder la oferta. Revisa los datos e intenta nuevamente.";
+}
+
 export async function createMarketListing(_previousState = DEFAULT_STATE, formData) {
   await requireProfile("/market");
 
@@ -181,5 +201,71 @@ export async function createMarketOffer(_previousState = DEFAULT_STATE, formData
   return {
     error: "",
     message: "Oferta enviada. Quedo pendiente de respuesta del vendedor."
+  };
+}
+
+export async function respondMarketOffer(_previousState = DEFAULT_STATE, formData) {
+  await requireProfile("/market");
+
+  const offerId = getField(formData, "offer_id");
+  const response = getField(formData, "response");
+  const counterAmountValue = getField(formData, "counter_amount");
+  const counterAmount = counterAmountValue ? Number(counterAmountValue) : null;
+  const message = getField(formData, "message");
+  const validResponses = new Set(["accepted", "rejected", "countered"]);
+
+  if (!offerId) {
+    return {
+      error: "Selecciona una oferta valida.",
+      message: ""
+    };
+  }
+
+  if (!validResponses.has(response)) {
+    return {
+      error: "Selecciona si aceptas, rechazas o contraofertas.",
+      message: ""
+    };
+  }
+
+  if (response === "countered" && (!Number.isFinite(counterAmount) || counterAmount <= 0)) {
+    return {
+      error: "La contraoferta debe ser mayor a 0.",
+      message: ""
+    };
+  }
+
+  if (message.length > 500) {
+    return {
+      error: "El mensaje no puede superar 500 caracteres.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("respond_market_offer", {
+    p_counter_amount: response === "countered" ? counterAmount : null,
+    p_message: message || null,
+    p_offer_id: offerId,
+    p_response: response
+  });
+
+  if (error) {
+    return {
+      error: friendlyMarketOfferResponseError(error),
+      message: ""
+    };
+  }
+
+  revalidatePath("/market");
+
+  return {
+    error: "",
+    message:
+      response === "accepted"
+        ? "Oferta aceptada. La publicacion quedo pausada para preparar el cierre."
+        : response === "rejected"
+          ? "Oferta rechazada. El comprador recibira una notificacion."
+          : "Contraoferta enviada al comprador."
   };
 }

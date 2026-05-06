@@ -5,6 +5,7 @@ import { formatMoney } from "../../../lib/economy";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase/server";
 import { MarketListingForm } from "./MarketListingForm";
 import { MarketOfferForm } from "./MarketOfferForm";
+import { MarketOfferResponseForm } from "./MarketOfferResponseForm";
 import styles from "./page.module.css";
 
 export const metadata = {
@@ -216,7 +217,7 @@ export default async function MarketPage() {
     serviceSupabase
       .from("market_offers")
       .select(
-        "id, listing_id, status, offer_amount, currency_symbol, message, created_at, buyer_owner_type, buyer_profile_id, buyer_organization_id, market_listings(id, title, seller_profile_id, seller_organization_id, properties(name)), profiles!market_offers_buyer_profile_id_fkey(gamertag, display_name), organizations!market_offers_buyer_organization_id_fkey(name)"
+        "id, listing_id, status, offer_amount, counter_amount, currency_symbol, message, seller_response, responded_at, created_at, buyer_owner_type, buyer_profile_id, buyer_organization_id, market_listings(id, title, seller_profile_id, seller_organization_id, properties(name)), profiles!market_offers_buyer_profile_id_fkey(gamertag, display_name), organizations!market_offers_buyer_organization_id_fkey(name)"
       )
       .order("created_at", { ascending: false })
       .limit(100)
@@ -327,8 +328,10 @@ export default async function MarketPage() {
     buyer: getBuyerName(offer),
     amount: formatMoney(offer.offer_amount, offer.currency_symbol),
     status: <Badge tone={getOfferStatusTone(offer.status)}>{formatOfferStatus(offer.status)}</Badge>,
+    counter: offer.counter_amount ? formatMoney(offer.counter_amount, offer.currency_symbol) : "Sin contraoferta",
     message: offer.message || "Sin mensaje",
-    date: formatDate(offer.created_at)
+    date: formatDate(offer.created_at),
+    response: <MarketOfferResponseForm offerId={offer.id} status={offer.status} />
   }));
 
   const sentOfferRows = sentOffers.map((offer) => ({
@@ -341,7 +344,9 @@ export default async function MarketPage() {
     ),
     buyer: getBuyerName(offer),
     amount: formatMoney(offer.offer_amount, offer.currency_symbol),
+    counter: offer.counter_amount ? formatMoney(offer.counter_amount, offer.currency_symbol) : "Sin contraoferta",
     status: <Badge tone={getOfferStatusTone(offer.status)}>{formatOfferStatus(offer.status)}</Badge>,
+    response: offer.seller_response || "Sin respuesta",
     date: formatDate(offer.created_at)
   }));
 
@@ -446,9 +451,11 @@ export default async function MarketPage() {
               { key: "listing", label: "Publicacion" },
               { key: "buyer", label: "Comprador" },
               { key: "amount", label: "Oferta" },
+              { key: "counter", label: "Contraoferta" },
               { key: "status", label: "Estado" },
               { key: "message", label: "Mensaje" },
-              { key: "date", label: "Fecha" }
+              { key: "date", label: "Fecha" },
+              { key: "response", label: "Responder" }
             ]}
             getRowKey={(row) => row.id}
             rows={receivedOfferRows}
@@ -474,7 +481,9 @@ export default async function MarketPage() {
               { key: "listing", label: "Publicacion" },
               { key: "buyer", label: "Comprador" },
               { key: "amount", label: "Oferta" },
+              { key: "counter", label: "Contraoferta" },
               { key: "status", label: "Estado" },
+              { key: "response", label: "Respuesta" },
               { key: "date", label: "Fecha" }
             ]}
             getRowKey={(row) => row.id}

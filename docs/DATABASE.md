@@ -320,7 +320,34 @@ Reglas:
 - La oferta queda en estado `pending` y no mueve dinero todavia.
 - El vendedor recibe una notificacion dirigida a su perfil u organizacion.
 - La ruta `/market` muestra ofertas enviadas y recibidas.
-- Aceptar, rechazar o contraofertar se implementa en la siguiente historia.
+
+### Respuestas a ofertas
+
+Archivo:
+
+```text
+supabase/migrations/20260430320000_market_offer_responses.sql
+```
+
+Incluye:
+
+- Columnas `seller_response`, `counter_amount` y `responded_by` en
+  `market_offers`.
+- RPC `respond_market_offer`.
+- Notificacion `market_offer_response` para el comprador.
+- Auditoria `market.offer_responded`.
+
+Reglas:
+
+- Solo el vendedor directo o un `owner/admin` de la organizacion vendedora puede
+  responder una oferta.
+- Solo ofertas `pending` pueden recibir respuesta.
+- El vendedor puede `accepted`, `rejected` o `countered`.
+- Si contraoferta, `counter_amount` debe ser mayor a `0`.
+- Al aceptar, la publicacion pasa a `paused` para evitar nuevas negociaciones
+  mientras se prepara el cierre.
+- Aceptar una oferta no mueve dinero ni propiedad todavia; el cierre atomico se
+  implementa en una historia posterior.
 
 ## Billeteras
 
