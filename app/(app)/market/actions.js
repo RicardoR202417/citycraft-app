@@ -78,6 +78,30 @@ function friendlyMarketOfferResponseError(error) {
   return "No se pudo responder la oferta. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlyMarketSettlementError(error) {
+  if (!error?.message) {
+    return "No se pudo cerrar la venta. Intenta nuevamente.";
+  }
+
+  if (error.code === "23514") {
+    if (error.message?.toLowerCase().includes("insufficient balance")) {
+      return "El comprador ya no tiene saldo suficiente para cerrar esta venta.";
+    }
+
+    return "La oferta o publicacion ya no esta lista para cierre.";
+  }
+
+  if (error.code === "42501") {
+    return "Solo comprador o vendedor pueden cerrar esta venta aceptada.";
+  }
+
+  if (error.code === "23503") {
+    return "No se encontro la oferta, wallet o participacion necesaria para cerrar la venta.";
+  }
+
+  return "No se pudo cerrar la venta. Revisa los datos e intenta nuevamente.";
+}
+
 export async function createMarketListing(_previousState = DEFAULT_STATE, formData) {
   await requireProfile("/market");
 
@@ -271,5 +295,40 @@ export async function respondMarketOffer(_previousState = DEFAULT_STATE, formDat
         : response === "rejected"
           ? "Oferta rechazada. El comprador recibira una notificacion."
           : "Contraoferta enviada al comprador."
+  };
+}
+
+export async function settleMarketOffer(_previousState = DEFAULT_STATE, formData) {
+  await requireProfile("/market");
+
+  const offerId = getField(formData, "offer_id");
+
+  if (!offerId) {
+    return {
+      error: "Selecciona una oferta aceptada valida.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("settle_market_offer", {
+    p_offer_id: offerId
+  });
+
+  if (error) {
+    return {
+      error: friendlyMarketSettlementError(error),
+      message: ""
+    };
+  }
+
+  revalidatePath("/market");
+  revalidatePath("/properties");
+  revalidatePath("/economy");
+  revalidatePath("/dashboard");
+
+  return {
+    error: "",
+    message: "Venta cerrada. Dinero y propiedad fueron transferidos en una sola transaccion."
   };
 }

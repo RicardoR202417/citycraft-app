@@ -376,6 +376,39 @@ Reglas:
 - El cierre atomico posterior debera volver a validar saldo antes de transferir
   dinero y propiedad.
 
+### Cierre atomico de mercado
+
+Archivo:
+
+```text
+supabase/migrations/20260430340000_market_atomic_settlement.sql
+```
+
+Incluye:
+
+- RPC `settle_market_offer`.
+- Ajuste de `market_listings.property_owner_id` para conservar historial aunque
+  el vendedor venda el 100% y su fila de propiedad desaparezca.
+- Transferencia de saldo entre wallets.
+- Actualizacion de `property_owners`.
+- Ledger `property_sale`.
+- Notificaciones `market_sale_settled`.
+- Auditoria `market.sale_settled`.
+
+Reglas:
+
+- Solo se pueden cerrar ofertas `accepted`.
+- El cierre puede ejecutarlo comprador o vendedor involucrado.
+- La oferta, publicacion, wallet compradora, wallet vendedora y propiedad del
+  vendedor se bloquean dentro de la transaccion.
+- Si el comprador ya no tiene saldo suficiente, nada se modifica.
+- Si el vendedor ya no tiene porcentaje suficiente, nada se modifica.
+- Si se vende el 100% de una participacion, la fila del vendedor se elimina.
+- Si el comprador ya tenia porcentaje sobre la propiedad, se suma; si no,
+  se crea una nueva fila de propietario.
+- La publicacion queda `sold` y otras ofertas pendientes de la misma publicacion
+  pasan a `expired`.
+
 ## Billeteras
 
 Archivo:

@@ -6,6 +6,7 @@ import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../l
 import { MarketListingForm } from "./MarketListingForm";
 import { MarketOfferForm } from "./MarketOfferForm";
 import { MarketOfferResponseForm } from "./MarketOfferResponseForm";
+import { MarketSettlementForm } from "./MarketSettlementForm";
 import styles from "./page.module.css";
 
 export const metadata = {
@@ -248,7 +249,7 @@ export default async function MarketPage() {
     serviceSupabase
       .from("market_offers")
       .select(
-        "id, listing_id, status, offer_amount, counter_amount, accepted_balance_snapshot, accepted_balance_checked_at, currency_symbol, message, seller_response, responded_at, created_at, buyer_owner_type, buyer_profile_id, buyer_organization_id, buyer_wallet_id, market_listings(id, title, seller_profile_id, seller_organization_id, properties(name)), profiles!market_offers_buyer_profile_id_fkey(gamertag, display_name), organizations!market_offers_buyer_organization_id_fkey(name), wallets!market_offers_buyer_wallet_id_fkey(balance, currency_symbol)"
+        "id, listing_id, status, offer_amount, counter_amount, accepted_balance_snapshot, accepted_balance_checked_at, currency_symbol, message, seller_response, responded_at, created_at, buyer_owner_type, buyer_profile_id, buyer_organization_id, buyer_wallet_id, market_listings(id, title, status, seller_profile_id, seller_organization_id, properties(name)), profiles!market_offers_buyer_profile_id_fkey(gamertag, display_name), organizations!market_offers_buyer_organization_id_fkey(name), wallets!market_offers_buyer_wallet_id_fkey(balance, currency_symbol)"
       )
       .order("created_at", { ascending: false })
       .limit(100)
@@ -368,7 +369,10 @@ export default async function MarketPage() {
     counter: offer.counter_amount ? formatMoney(offer.counter_amount, offer.currency_symbol) : "Sin contraoferta",
     message: offer.message || "Sin mensaje",
     date: formatDate(offer.created_at),
-    response: <MarketOfferResponseForm offerId={offer.id} status={offer.status} />
+    response: <MarketOfferResponseForm offerId={offer.id} status={offer.status} />,
+    settlement: (
+      <MarketSettlementForm listingStatus={offer.market_listings?.status} offerId={offer.id} status={offer.status} />
+    )
   }));
 
   const sentOfferRows = sentOffers.map((offer) => ({
@@ -389,6 +393,9 @@ export default async function MarketPage() {
     counter: offer.counter_amount ? formatMoney(offer.counter_amount, offer.currency_symbol) : "Sin contraoferta",
     status: <Badge tone={getOfferStatusTone(offer.status)}>{formatOfferStatus(offer.status)}</Badge>,
     response: offer.seller_response || "Sin respuesta",
+    settlement: (
+      <MarketSettlementForm listingStatus={offer.market_listings?.status} offerId={offer.id} status={offer.status} />
+    ),
     date: formatDate(offer.created_at)
   }));
 
@@ -498,7 +505,8 @@ export default async function MarketPage() {
               { key: "status", label: "Estado" },
               { key: "message", label: "Mensaje" },
               { key: "date", label: "Fecha" },
-              { key: "response", label: "Responder" }
+              { key: "response", label: "Responder" },
+              { key: "settlement", label: "Cierre" }
             ]}
             getRowKey={(row) => row.id}
             rows={receivedOfferRows}
@@ -528,6 +536,7 @@ export default async function MarketPage() {
               { key: "counter", label: "Contraoferta" },
               { key: "status", label: "Estado" },
               { key: "response", label: "Respuesta" },
+              { key: "settlement", label: "Cierre" },
               { key: "date", label: "Fecha" }
             ]}
             getRowKey={(row) => row.id}
