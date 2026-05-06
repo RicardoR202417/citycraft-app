@@ -545,6 +545,9 @@ Reglas:
   del recalculo.
 - `/districts` muestra indice actual, factores principales y tendencia por
   delegacion.
+- `/districts` incluye reportes por delegacion con propiedades por tipo, valor
+  acumulado, plusvalia actual, historial resumido y actividad reciente para
+  detectar zonas con mayor movimiento.
 - `/properties` muestra la plusvalia de la delegacion de cada propiedad directa
   del jugador.
 - `/properties` tambien cruza `property_valuations` con el ultimo snapshot de

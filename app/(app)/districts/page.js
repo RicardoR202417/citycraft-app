@@ -27,6 +27,46 @@ function getTrendIcon(trend) {
   return TrendingUp;
 }
 
+function daysSince(value) {
+  if (!value) {
+    return Infinity;
+  }
+
+  const timestamp = new Date(value).getTime();
+
+  if (!Number.isFinite(timestamp)) {
+    return Infinity;
+  }
+
+  return (Date.now() - timestamp) / (1000 * 60 * 60 * 24);
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "Sin historial";
+  }
+
+  return new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "medium"
+  }).format(new Date(value));
+}
+
+function formatPropertyType(type) {
+  const labels = {
+    commercial: "Local",
+    corporate: "Corporativo",
+    cultural: "Cultural",
+    entertainment: "Entretenimiento",
+    infrastructure: "Infraestructura",
+    land: "Terreno",
+    public: "Publica",
+    residential: "Habitacional",
+    service: "Servicio"
+  };
+
+  return labels[type] || type;
+}
+
 export default async function DistrictsPage() {
   await requireProfile("/districts");
   const supabase = await createSupabaseServerClient();
@@ -50,7 +90,7 @@ export default async function DistrictsPage() {
       .select("property_id, owner_type, profile_id, organization_id, ownership_percent"),
     serviceSupabase
       .from("district_appreciation_history")
-      .select("district_id, new_index, created_at")
+      .select("district_id, previous_index, new_index, change_amount, reason, created_at")
       .order("created_at", { ascending: false })
       .limit(200)
   ]);
@@ -95,6 +135,101 @@ export default async function DistrictsPage() {
     { label: "Valor registrado", value: formatMoney(cityValue) },
     { label: "Mayor plusvalia", value: strongestDistrict?.name || "Sin datos" }
   ];
+
+  const propertiesByDistrict = new Map();
+  const historyByDistrict = new Map();
+
+  for (const property of properties) {
+    propertiesByDistrict.set(property.district_id, [
+      ...(propertiesByDistrict.get(property.district_id) || []),
+      property
+    ]);
+  }
+
+  for (const record of asArray(appreciationHistoryData)) {
+    historyByDistrict.set(record.district_id, [
+      ...(historyByDistrict.get(record.district_id) || []),
+      record
+    ]);
+  }
+
+  const reportRows = districts.map((district) => {
+    const metrics = metricsByDistrict.get(district.id);
+    const districtProperties = propertiesByDistrict.get(district.id) || [];
+    const typeCounts = districtProperties.reduce((counts, property) => {
+      counts[property.type] = (counts[property.type] || 0) + 1;
+      return counts;
+    }, {});
+    const topTypes = Object.entries(typeCounts)
+      .sort(([, countA], [, countB]) => countB - countA)
+      .slice(0, 4);
+    const recentActivity = districtProperties.filter(
+      (property) => daysSince(property.updated_at || property.created_at) <= 30 || daysSince(property.created_at) <= 30
+    ).length;
+    const history = historyByDistrict.get(district.id) || [];
+    const latestHistory = history[0];
+
+    return {
+      id: district.id,
+      district: (
+        <div className={styles.nameCell}>
+          <strong>{district.name}</strong>
+          <span>{district.slug}</span>
+        </div>
+      ),
+      typeBreakdown: topTypes.length ? (
+        <div className={styles.typeBreakdown}>
+          {topTypes.map(([type, count]) => (
+            <span key={type}>
+              {formatPropertyType(type)}: {count.toLocaleString("es-MX")}
+            </span>
+          ))}
+        </div>
+      ) : (
+        "Sin propiedades"
+      ),
+      accumulatedValue: formatMoney(metrics.totalValue),
+      appreciation: (
+        <div className={styles.nameCell}>
+          <strong>{formatAppreciationRate(metrics.currentRate)}</strong>
+          <span>{formatAppreciationTrend(metrics.trend)}</span>
+        </div>
+      ),
+      history: latestHistory ? (
+        <div className={styles.nameCell}>
+          <strong>{formatAppreciationRate(latestHistory.change_amount)}</strong>
+          <span>{formatDate(latestHistory.created_at)}</span>
+        </div>
+      ) : (
+        "Sin snapshot"
+      ),
+      activity: (
+        <Badge tone={recentActivity ? "success" : "neutral"}>
+          {recentActivity.toLocaleString("es-MX")} recientes
+        </Badge>
+      )
+    };
+  });
+
+  const activityInsights = districts
+    .map((district) => {
+      const districtProperties = propertiesByDistrict.get(district.id) || [];
+      const recentActivity = districtProperties.filter(
+        (property) => daysSince(property.updated_at || property.created_at) <= 30 || daysSince(property.created_at) <= 30
+      ).length;
+      const metrics = metricsByDistrict.get(district.id);
+
+      return {
+        id: district.id,
+        name: district.name,
+        recentActivity,
+        totalValue: metrics.totalValue,
+        currentRate: metrics.currentRate,
+        propertyCount: metrics.propertyCount
+      };
+    })
+    .sort((a, b) => b.recentActivity - a.recentActivity || b.totalValue - a.totalValue)
+    .slice(0, 3);
 
   const rows = districts.map((district) => {
     const metrics = metricsByDistrict.get(district.id);
@@ -183,6 +318,53 @@ export default async function DistrictsPage() {
           />
         )}
       </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          description="Indicadores consolidados por delegacion para comparar tipos de propiedades, valor, plusvalia e historial."
+          eyebrow="Reportes"
+          title="Reporte por delegacion"
+        />
+        {reportRows.length ? (
+          <Table
+            columns={[
+              { key: "district", label: "Delegacion" },
+              { key: "typeBreakdown", label: "Propiedades por tipo" },
+              { key: "accumulatedValue", label: "Valor acumulado" },
+              { key: "appreciation", label: "Plusvalia actual" },
+              { key: "history", label: "Historial resumido" },
+              { key: "activity", label: "Actividad" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={reportRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando existan delegaciones registradas, aqui aparecera el reporte territorial."
+            icon={MapPinned}
+            title="Sin reportes"
+          />
+        )}
+      </Card>
+
+      <section className={styles.reportGrid}>
+        {activityInsights.map((district, index) => (
+          <Card className={styles.insightCard} key={district.id}>
+            <span>Zona activa #{index + 1}</span>
+            <h2>{district.name}</h2>
+            <div className={styles.insightMetric}>
+              <TrendingUp size={20} />
+              <strong>{district.recentActivity.toLocaleString("es-MX")}</strong>
+              <span>movimientos recientes</span>
+            </div>
+            <div className={styles.insightDetails}>
+              <span>{district.propertyCount.toLocaleString("es-MX")} propiedades</span>
+              <span>{formatMoney(district.totalValue)}</span>
+              <span>{formatAppreciationRate(district.currentRate)} plusvalia</span>
+            </div>
+          </Card>
+        ))}
+      </section>
 
       <section className={styles.districtGrid}>
         {districts.map((district) => {
