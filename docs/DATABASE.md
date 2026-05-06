@@ -292,8 +292,35 @@ Reglas:
 - Si el propietario tiene 100%, puede publicar el 100% como venta completa.
 - Las publicaciones guardan precio base, moneda, vendedor, propiedad y estado.
 - La ruta privada `/market` permite crear publicaciones y listar ventas activas.
-- Ofertas, contraofertas, validacion de saldo y cierre atomico se agregan en
-  las siguientes historias del epic de mercado.
+- Ofertas, contraofertas, validacion de saldo y cierre atomico se agregan por
+  historias separadas del epic de mercado.
+
+### Ofertas de mercado
+
+Archivo:
+
+```text
+supabase/migrations/20260430310000_market_offers.sql
+```
+
+Incluye:
+
+- Tipo `market_offer_status`: `pending`, `accepted`, `rejected`, `countered`,
+  `withdrawn`, `expired`.
+- Tabla `market_offers` para ofertas de compra sobre publicaciones activas.
+- RPC `create_market_offer`.
+- Notificacion `market_offer_created` para el vendedor.
+- Auditoria `market.offer_created`.
+
+Reglas:
+
+- Un comprador puede ofertar como jugador o como organizacion donde sea miembro
+  activo.
+- El saldo de la wallet elegida debe ser suficiente al momento de ofertar.
+- La oferta queda en estado `pending` y no mueve dinero todavia.
+- El vendedor recibe una notificacion dirigida a su perfil u organizacion.
+- La ruta `/market` muestra ofertas enviadas y recibidas.
+- Aceptar, rechazar o contraofertar se implementa en la siguiente historia.
 
 ## Billeteras
 

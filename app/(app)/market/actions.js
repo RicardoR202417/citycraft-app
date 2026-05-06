@@ -34,6 +34,26 @@ function friendlyMarketListingError(error) {
   return "No se pudo publicar la venta. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlyMarketOfferError(error) {
+  if (!error?.message) {
+    return "No se pudo enviar la oferta. Intenta nuevamente.";
+  }
+
+  if (error.code === "23514") {
+    return "Revisa el monto, la publicacion y tu saldo disponible antes de ofertar.";
+  }
+
+  if (error.code === "42501") {
+    return "No puedes ofertar con esa cuenta u organizacion.";
+  }
+
+  if (error.code === "23503") {
+    return "No se encontro la publicacion o la wallet del comprador.";
+  }
+
+  return "No se pudo enviar la oferta. Revisa los datos e intenta nuevamente.";
+}
+
 export async function createMarketListing(_previousState = DEFAULT_STATE, formData) {
   await requireProfile("/market");
 
@@ -99,5 +119,67 @@ export async function createMarketListing(_previousState = DEFAULT_STATE, formDa
   return {
     error: "",
     message: "Publicacion creada. El porcentaje quedo reservado para esta venta."
+  };
+}
+
+export async function createMarketOffer(_previousState = DEFAULT_STATE, formData) {
+  await requireProfile("/market");
+
+  const listingId = getField(formData, "listing_id");
+  const buyerAccount = getField(formData, "buyer_account");
+  const offerAmount = Number(getField(formData, "offer_amount"));
+  const message = getField(formData, "message");
+  const buyerOrganizationId = buyerAccount.startsWith("organization:")
+    ? buyerAccount.replace("organization:", "")
+    : null;
+
+  if (!listingId) {
+    return {
+      error: "Selecciona una publicacion valida para ofertar.",
+      message: ""
+    };
+  }
+
+  if (!buyerAccount) {
+    return {
+      error: "Selecciona si ofertaras como jugador u organizacion.",
+      message: ""
+    };
+  }
+
+  if (!Number.isFinite(offerAmount) || offerAmount <= 0) {
+    return {
+      error: "La oferta debe ser mayor a 0.",
+      message: ""
+    };
+  }
+
+  if (message.length > 500) {
+    return {
+      error: "El mensaje no puede superar 500 caracteres.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("create_market_offer", {
+    p_buyer_organization_id: buyerOrganizationId,
+    p_listing_id: listingId,
+    p_message: message || null,
+    p_offer_amount: offerAmount
+  });
+
+  if (error) {
+    return {
+      error: friendlyMarketOfferError(error),
+      message: ""
+    };
+  }
+
+  revalidatePath("/market");
+
+  return {
+    error: "",
+    message: "Oferta enviada. Quedo pendiente de respuesta del vendedor."
   };
 }
