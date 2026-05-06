@@ -1,8 +1,9 @@
-import { ArrowLeft, BadgeDollarSign, CircleDollarSign, Gavel, Hourglass, Landmark } from "lucide-react";
+import { ArrowLeft, BadgeDollarSign, CircleDollarSign, Gavel, HandCoins, Hourglass } from "lucide-react";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase/server";
+import { AuctionBidForm } from "./AuctionBidForm";
 import { AuctionForm } from "./AuctionForm";
 import styles from "./page.module.css";
 
@@ -105,6 +106,38 @@ function getSellerName(auction) {
   return auction.profiles?.display_name || auction.profiles?.gamertag || "Jugador";
 }
 
+function getBidderName(bid) {
+  if (bid.bidder_owner_type === "organization") {
+    return bid.organizations?.name || "Organizacion";
+  }
+
+  return bid.profiles?.display_name || bid.profiles?.gamertag || "Jugador";
+}
+
+function formatBidStatus(status) {
+  const labels = {
+    cancelled: "Cancelada",
+    failed: "Fallida",
+    leading: "Lider",
+    outbid: "Superada",
+    settled: "Liquidada"
+  };
+
+  return labels[status] || status;
+}
+
+function getBidStatusTone(status) {
+  const tones = {
+    cancelled: "danger",
+    failed: "danger",
+    leading: "success",
+    outbid: "warning",
+    settled: "info"
+  };
+
+  return tones[status] || "neutral";
+}
+
 function getOwnershipLabel(ownership, organizationsById) {
   const property = ownership.properties;
   const owner =
@@ -138,6 +171,14 @@ export default async function AuctionsPage() {
 
   const adminOrganizationIds = adminMemberships.map((membership) => membership.organization_id).filter(Boolean);
 
+  const { data: activeMemberships = [] } = await supabase
+    .from("organization_members")
+    .select("organization_id, role, organizations(id, name)")
+    .eq("profile_id", profile.id)
+    .eq("is_active", true);
+
+  const activeOrganizationIds = activeMemberships.map((membership) => membership.organization_id).filter(Boolean);
+
   const { data: organizationOwnerships = [] } = adminOrganizationIds.length
     ? await supabase
         .from("property_owners")
@@ -155,7 +196,10 @@ export default async function AuctionsPage() {
     { data: reservedListings = [] },
     { data: reservedAuctions = [] },
     { data: activeAuctions = [] },
-    { data: ownAuctions = [] }
+    { data: ownAuctions = [] },
+    { data: playerWallet },
+    { data: organizationWallets = [] },
+    { data: ownBids = [] }
   ] = await Promise.all([
     ownershipIds.length
       ? serviceSupabase
@@ -193,8 +237,45 @@ export default async function AuctionsPage() {
         ].join(",")
       )
       .order("created_at", { ascending: false })
-      .limit(30)
+      .limit(30),
+    serviceSupabase
+      .from("wallets")
+      .select("id, balance, currency_symbol")
+      .eq("owner_profile_id", profile.id)
+      .maybeSingle(),
+    activeOrganizationIds.length
+      ? serviceSupabase
+          .from("wallets")
+          .select("id, owner_organization_id, balance, currency_symbol")
+          .in("owner_organization_id", activeOrganizationIds)
+      : { data: [] },
+    serviceSupabase
+      .from("auction_bids")
+      .select(
+        "id, auction_id, status, bid_amount, currency_symbol, message, created_at, bidder_owner_type, bidder_profile_id, bidder_organization_id, auctions(id, title, status, ends_at, properties(name)), profiles!auction_bids_bidder_profile_id_fkey(gamertag, display_name), organizations!auction_bids_bidder_organization_id_fkey(name)"
+      )
+      .or(
+        [
+          `bidder_profile_id.eq.${profile.id}`,
+          ...activeOrganizationIds.map((organizationId) => `bidder_organization_id.eq.${organizationId}`)
+        ].join(",")
+      )
+      .order("created_at", { ascending: false })
+      .limit(50)
   ]);
+
+  const auctionIds = [...asArray(activeAuctions), ...asArray(ownAuctions)]
+    .map((auction) => auction.id)
+    .filter(Boolean);
+  const { data: leadingBids = [] } = auctionIds.length
+    ? await serviceSupabase
+        .from("auction_bids")
+        .select(
+          "id, auction_id, status, bid_amount, currency_symbol, created_at, bidder_owner_type, bidder_profile_id, bidder_organization_id, profiles!auction_bids_bidder_profile_id_fkey(gamertag, display_name), organizations!auction_bids_bidder_organization_id_fkey(name)"
+        )
+        .in("auction_id", auctionIds)
+        .eq("status", "leading")
+    : { data: [] };
 
   const organizationsById = new Map(
     adminMemberships.map((membership) => [membership.organization_id, membership.organizations])
@@ -229,57 +310,126 @@ export default async function AuctionsPage() {
     };
   });
 
-  const activeRows = asArray(activeAuctions).map((auction) => ({
-    id: auction.id,
-    auction: (
-      <div className={styles.nameCell}>
-        <strong>{auction.title}</strong>
-        <span>{auction.properties?.name || "Propiedad no disponible"}</span>
-      </div>
-    ),
-    seller: getSellerName(auction),
-    district: auction.properties?.districts?.name || "Sin delegacion",
-    type: <Badge tone="info">{formatPropertyType(auction.properties?.type)}</Badge>,
-    percent: formatPercent(auction.ownership_percent),
-    price: formatMoney(auction.starting_price, auction.currency_symbol),
-    ends: (
-      <div className={styles.timeCell}>
-        <strong>{formatTimeLeft(auction.ends_at)}</strong>
-        <span>{formatDate(auction.ends_at)}</span>
-      </div>
-    )
-  }));
+  const organizationWalletById = new Map(
+    asArray(organizationWallets).map((wallet) => [wallet.owner_organization_id, wallet])
+  );
+  const buyerOptions = [
+    {
+      balance: Number(playerWallet?.balance || 0),
+      balanceLabel: formatMoney(playerWallet?.balance || 0, playerWallet?.currency_symbol),
+      label: profile.display_name || profile.gamertag,
+      value: "profile"
+    },
+    ...asArray(activeMemberships).map((membership) => {
+      const wallet = organizationWalletById.get(membership.organization_id);
 
-  const ownRows = asArray(ownAuctions).map((auction) => ({
-    id: auction.id,
+      return {
+        balance: Number(wallet?.balance || 0),
+        balanceLabel: formatMoney(wallet?.balance || 0, wallet?.currency_symbol),
+        label: membership.organizations?.name || "Organizacion",
+        value: `organization:${membership.organization_id}`
+      };
+    })
+  ];
+  const leadingBidByAuctionId = new Map(asArray(leadingBids).map((bid) => [bid.auction_id, bid]));
+
+  const activeRows = asArray(activeAuctions).map((auction) => {
+    const leadingBid = leadingBidByAuctionId.get(auction.id);
+    const minimumBid = leadingBid
+      ? Number(leadingBid.bid_amount || 0) + 0.01
+      : Number(auction.starting_price || 0);
+
+    return {
+      id: auction.id,
+      auction: (
+        <div className={styles.nameCell}>
+          <strong>{auction.title}</strong>
+          <span>{auction.properties?.name || "Propiedad no disponible"}</span>
+        </div>
+      ),
+      seller: getSellerName(auction),
+      district: auction.properties?.districts?.name || "Sin delegacion",
+      type: <Badge tone="info">{formatPropertyType(auction.properties?.type)}</Badge>,
+      percent: formatPercent(auction.ownership_percent),
+      price: formatMoney(auction.starting_price, auction.currency_symbol),
+      currentBid: leadingBid ? (
+        <div className={styles.nameCell}>
+          <strong>{formatMoney(leadingBid.bid_amount, leadingBid.currency_symbol)}</strong>
+          <span>{getBidderName(leadingBid)}</span>
+        </div>
+      ) : (
+        "Sin pujas"
+      ),
+      ends: (
+        <div className={styles.timeCell}>
+          <strong>{formatTimeLeft(auction.ends_at)}</strong>
+          <span>{formatDate(auction.ends_at)}</span>
+        </div>
+      ),
+      bid: <AuctionBidForm auctionId={auction.id} buyerOptions={buyerOptions} minimumBid={minimumBid} />
+    };
+  });
+
+  const ownRows = asArray(ownAuctions).map((auction) => {
+    const leadingBid = leadingBidByAuctionId.get(auction.id);
+
+    return {
+      id: auction.id,
+      auction: (
+        <div className={styles.nameCell}>
+          <strong>{auction.title}</strong>
+          <span>{auction.properties?.name || "Propiedad no disponible"}</span>
+        </div>
+      ),
+      status: <Badge tone={getAuctionStatusTone(auction.status)}>{formatAuctionStatus(auction.status)}</Badge>,
+      percent: formatPercent(auction.ownership_percent),
+      price: formatMoney(auction.starting_price, auction.currency_symbol),
+      currentBid: leadingBid ? (
+        <div className={styles.nameCell}>
+          <strong>{formatMoney(leadingBid.bid_amount, leadingBid.currency_symbol)}</strong>
+          <span>{getBidderName(leadingBid)}</span>
+        </div>
+      ) : (
+        "Sin pujas"
+      ),
+      starts: formatDate(auction.starts_at),
+      ends: (
+        <div className={styles.timeCell}>
+          <strong>{formatTimeLeft(auction.ends_at)}</strong>
+          <span>{formatDate(auction.ends_at)}</span>
+        </div>
+      )
+    };
+  });
+
+  const ownBidRows = asArray(ownBids).map((bid) => ({
+    id: bid.id,
     auction: (
       <div className={styles.nameCell}>
-        <strong>{auction.title}</strong>
-        <span>{auction.properties?.name || "Propiedad no disponible"}</span>
+        <strong>{bid.auctions?.title || "Subasta no disponible"}</strong>
+        <span>{bid.auctions?.properties?.name || "Propiedad no disponible"}</span>
       </div>
     ),
-    status: <Badge tone={getAuctionStatusTone(auction.status)}>{formatAuctionStatus(auction.status)}</Badge>,
-    percent: formatPercent(auction.ownership_percent),
-    price: formatMoney(auction.starting_price, auction.currency_symbol),
-    starts: formatDate(auction.starts_at),
-    ends: (
-      <div className={styles.timeCell}>
-        <strong>{formatTimeLeft(auction.ends_at)}</strong>
-        <span>{formatDate(auction.ends_at)}</span>
-      </div>
-    )
+    bidder: getBidderName(bid),
+    amount: formatMoney(bid.bid_amount, bid.currency_symbol),
+    status: <Badge tone={getBidStatusTone(bid.status)}>{formatBidStatus(bid.status)}</Badge>,
+    auctionStatus: <Badge tone={getAuctionStatusTone(bid.auctions?.status)}>{formatAuctionStatus(bid.auctions?.status)}</Badge>,
+    ends: formatDate(bid.auctions?.ends_at),
+    date: formatDate(bid.created_at)
   }));
 
   const activeValue = asArray(activeAuctions).reduce(
     (sum, auction) => sum + Number(auction.starting_price || 0),
     0
   );
+  const leadingValue = asArray(leadingBids).reduce((sum, bid) => sum + Number(bid.bid_amount || 0), 0);
   const summaryItems = [
     { label: "Subastas activas", value: activeAuctions.length.toLocaleString("es-MX") },
     { label: "Valor inicial publicado", value: formatMoney(activeValue) },
+    { label: "Pujas lideres", value: formatMoney(leadingValue) },
     { label: "Participaciones subastables", value: ownershipOptions.length.toLocaleString("es-MX") },
     { label: "Tus subastas", value: ownAuctions.length.toLocaleString("es-MX") },
-    { label: "Duraciones permitidas", value: "20m, 10h, 1d, 1s" }
+    { label: "Tus pujas", value: ownBids.length.toLocaleString("es-MX") }
   ];
 
   return (
@@ -331,9 +481,9 @@ export default async function AuctionsPage() {
 
       <Card className={styles.card}>
         <SectionHeader
-          description="Subastas vigentes visibles para jugadores autenticados. Las pujas se integran en la siguiente historia."
+          description="Subastas vigentes visibles para jugadores autenticados. Cada puja debe cubrir el precio inicial o superar la puja lider."
           eyebrow="Activas"
-          title="Subastas abiertas"
+          title="Subastas abiertas y pujas"
         />
         {activeRows.length ? (
           <Table
@@ -344,7 +494,9 @@ export default async function AuctionsPage() {
               { key: "type", label: "Tipo" },
               { key: "percent", label: "%" },
               { key: "price", label: "Precio inicial" },
-              { key: "ends", label: "Cierre" }
+              { key: "currentBid", label: "Puja lider" },
+              { key: "ends", label: "Cierre" },
+              { key: "bid", label: "Pujar" }
             ]}
             getRowKey={(row) => row.id}
             rows={activeRows}
@@ -371,6 +523,7 @@ export default async function AuctionsPage() {
               { key: "status", label: "Estado" },
               { key: "percent", label: "%" },
               { key: "price", label: "Precio inicial" },
+              { key: "currentBid", label: "Puja lider" },
               { key: "starts", label: "Inicio" },
               { key: "ends", label: "Cierre" }
             ]}
@@ -388,15 +541,31 @@ export default async function AuctionsPage() {
 
       <Card className={styles.card}>
         <SectionHeader
-          description="CCAPP-54 deja lista la base de subastas. Las pujas, validaciones de saldo y cierre atomico avanzan en las siguientes historias del sprint."
-          eyebrow="Siguiente flujo"
-          title="Bloqueo de porcentaje activo"
+          description="Historial reciente de pujas realizadas como jugador o con organizaciones donde participas."
+          eyebrow="Mis pujas"
+          title="Participacion en subastas"
         />
-        <EmptyState
-          description="El porcentaje subastado queda reservado junto con las ventas activas para evitar doble publicacion de la misma participacion."
-          icon={Landmark}
-          title="Reserva compartida entre mercado y subastas"
-        />
+        {ownBidRows.length ? (
+          <Table
+            columns={[
+              { key: "auction", label: "Subasta" },
+              { key: "bidder", label: "Comprador" },
+              { key: "amount", label: "Puja" },
+              { key: "status", label: "Estado puja" },
+              { key: "auctionStatus", label: "Estado subasta" },
+              { key: "ends", label: "Cierre" },
+              { key: "date", label: "Fecha" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={ownBidRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando pujes como jugador u organizacion, veras aqui si lideras o fuiste superado."
+            icon={HandCoins}
+            title="Sin pujas registradas"
+          />
+        )}
       </Card>
     </main>
   );

@@ -415,6 +415,7 @@ Archivo:
 
 ```text
 supabase/migrations/20260430350000_auction_foundation.sql
+supabase/migrations/20260430360000_auction_bids.sql
 ```
 
 Incluye:
@@ -439,8 +440,14 @@ Reglas:
 - Las duraciones permitidas de la primera version son `20` minutos, `10` horas,
   `1` dia y `1` semana.
 - La ruta privada `/auctions` permite crear subastas y listar subastas activas.
-- Pujas, validacion de saldo y cierre atomico se implementan en historias
-  posteriores del epic de subastas.
+- La tabla `auction_bids` y la RPC `create_auction_bid` permiten pujar como
+  jugador u organizacion con saldo suficiente.
+- Solo puede existir una puja `leading` por subasta activa.
+- La primera puja debe cubrir el precio inicial de la subasta.
+- Las siguientes pujas deben superar la puja lider vigente.
+- Cuando una nueva puja lider entra, la anterior pasa a `outbid`.
+- Cierre automatico, notificaciones de puja superada y liquidacion atomica se
+  implementan en historias posteriores del epic de subastas.
 
 ## Billeteras
 

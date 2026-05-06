@@ -34,6 +34,30 @@ function friendlyAuctionError(error) {
   return "No se pudo crear la subasta. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlyAuctionBidError(error) {
+  if (!error?.message) {
+    return "No se pudo registrar la puja. Intenta nuevamente.";
+  }
+
+  if (error.code === "23514") {
+    if (error.message?.toLowerCase().includes("insufficient balance")) {
+      return "No hay saldo suficiente para cubrir esta puja.";
+    }
+
+    return "La puja debe cubrir el precio inicial o superar la puja vigente.";
+  }
+
+  if (error.code === "42501") {
+    return "No puedes pujar con esa cuenta u organizacion.";
+  }
+
+  if (error.code === "23503") {
+    return "No se encontro la subasta o la wallet del comprador.";
+  }
+
+  return "No se pudo registrar la puja. Revisa los datos e intenta nuevamente.";
+}
+
 export async function createAuction(_previousState = DEFAULT_STATE, formData) {
   await requireProfile("/auctions");
 
@@ -111,5 +135,68 @@ export async function createAuction(_previousState = DEFAULT_STATE, formData) {
   return {
     error: "",
     message: "Subasta creada. El porcentaje quedo reservado hasta que termine o se cancele."
+  };
+}
+
+export async function createAuctionBid(_previousState = DEFAULT_STATE, formData) {
+  await requireProfile("/auctions");
+
+  const auctionId = getField(formData, "auction_id");
+  const buyerAccount = getField(formData, "buyer_account");
+  const bidAmount = Number(getField(formData, "bid_amount"));
+  const message = getField(formData, "message");
+  const bidderOrganizationId = buyerAccount.startsWith("organization:")
+    ? buyerAccount.replace("organization:", "")
+    : null;
+
+  if (!auctionId) {
+    return {
+      error: "Selecciona una subasta valida para pujar.",
+      message: ""
+    };
+  }
+
+  if (!buyerAccount) {
+    return {
+      error: "Selecciona si pujaras como jugador u organizacion.",
+      message: ""
+    };
+  }
+
+  if (!Number.isFinite(bidAmount) || bidAmount <= 0) {
+    return {
+      error: "La puja debe ser mayor a 0.",
+      message: ""
+    };
+  }
+
+  if (message.length > 500) {
+    return {
+      error: "El mensaje no puede superar 500 caracteres.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("create_auction_bid", {
+    p_auction_id: auctionId,
+    p_bid_amount: bidAmount,
+    p_bidder_organization_id: bidderOrganizationId,
+    p_message: message || null
+  });
+
+  if (error) {
+    return {
+      error: friendlyAuctionBidError(error),
+      message: ""
+    };
+  }
+
+  revalidatePath("/auctions");
+  revalidatePath("/dashboard");
+
+  return {
+    error: "",
+    message: "Puja registrada. Quedaste como lider de la subasta."
   };
 }
