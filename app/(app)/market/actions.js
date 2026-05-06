@@ -60,6 +60,10 @@ function friendlyMarketOfferResponseError(error) {
   }
 
   if (error.code === "23514") {
+    if (error.message?.toLowerCase().includes("insufficient balance")) {
+      return "El comprador ya no tiene saldo suficiente para aceptar esta oferta.";
+    }
+
     return "Solo puedes responder ofertas pendientes. Si contraofertas, el monto debe ser mayor a 0.";
   }
 

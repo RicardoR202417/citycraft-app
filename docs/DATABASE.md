@@ -346,8 +346,35 @@ Reglas:
 - Si contraoferta, `counter_amount` debe ser mayor a `0`.
 - Al aceptar, la publicacion pasa a `paused` para evitar nuevas negociaciones
   mientras se prepara el cierre.
+- Al aceptar, la RPC vuelve a bloquear y validar la wallet del comprador. Si ya
+  no hay saldo suficiente, falla sin modificar oferta ni publicacion.
 - Aceptar una oferta no mueve dinero ni propiedad todavia; el cierre atomico se
   implementa en una historia posterior.
+
+### Guardas de saldo en mercado
+
+Archivo:
+
+```text
+supabase/migrations/20260430330000_market_offer_balance_guards.sql
+```
+
+Incluye:
+
+- Funcion `market_offer_has_sufficient_funds`.
+- Validacion transaccional de saldo dentro de `respond_market_offer` al aceptar.
+- Campos `accepted_balance_checked_at` y `accepted_balance_snapshot` en
+  `market_offers`.
+
+Reglas:
+
+- El saldo se valida al ofertar y se vuelve a validar al aceptar.
+- El chequeo de aceptacion usa `for update` sobre la wallet del comprador.
+- Si el saldo no alcanza, la respuesta falla antes de modificar estado o enviar
+  notificacion.
+- `/market` muestra si una oferta pendiente todavia tiene fondos suficientes.
+- El cierre atomico posterior debera volver a validar saldo antes de transferir
+  dinero y propiedad.
 
 ## Billeteras
 

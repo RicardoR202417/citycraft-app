@@ -98,6 +98,37 @@ function getOfferStatusTone(status) {
   return tones[status] || "neutral";
 }
 
+function getOfferFundsStatus(offer) {
+  const currentBalance = Number(offer.wallets?.balance || 0);
+  const requiredAmount = Number(offer.offer_amount || 0);
+
+  if (offer.status === "accepted") {
+    return {
+      label: `Validado con ${formatMoney(offer.accepted_balance_snapshot, offer.currency_symbol)}`,
+      tone: "success"
+    };
+  }
+
+  if (offer.status !== "pending") {
+    return {
+      label: "No requerido",
+      tone: "neutral"
+    };
+  }
+
+  if (currentBalance >= requiredAmount) {
+    return {
+      label: `Disponible ${formatMoney(currentBalance, offer.wallets?.currency_symbol || offer.currency_symbol)}`,
+      tone: "success"
+    };
+  }
+
+  return {
+    label: `Insuficiente ${formatMoney(currentBalance, offer.wallets?.currency_symbol || offer.currency_symbol)}`,
+    tone: "danger"
+  };
+}
+
 function getSellerName(listing) {
   if (listing.seller_owner_type === "organization") {
     return listing.organizations?.name || "Organizacion";
@@ -217,7 +248,7 @@ export default async function MarketPage() {
     serviceSupabase
       .from("market_offers")
       .select(
-        "id, listing_id, status, offer_amount, counter_amount, currency_symbol, message, seller_response, responded_at, created_at, buyer_owner_type, buyer_profile_id, buyer_organization_id, market_listings(id, title, seller_profile_id, seller_organization_id, properties(name)), profiles!market_offers_buyer_profile_id_fkey(gamertag, display_name), organizations!market_offers_buyer_organization_id_fkey(name)"
+        "id, listing_id, status, offer_amount, counter_amount, accepted_balance_snapshot, accepted_balance_checked_at, currency_symbol, message, seller_response, responded_at, created_at, buyer_owner_type, buyer_profile_id, buyer_organization_id, buyer_wallet_id, market_listings(id, title, seller_profile_id, seller_organization_id, properties(name)), profiles!market_offers_buyer_profile_id_fkey(gamertag, display_name), organizations!market_offers_buyer_organization_id_fkey(name), wallets!market_offers_buyer_wallet_id_fkey(balance, currency_symbol)"
       )
       .order("created_at", { ascending: false })
       .limit(100)
@@ -318,6 +349,7 @@ export default async function MarketPage() {
   );
 
   const receivedOfferRows = receivedOffers.map((offer) => ({
+    fundsStatus: getOfferFundsStatus(offer),
     id: offer.id,
     listing: (
       <div className={styles.nameCell}>
@@ -328,6 +360,11 @@ export default async function MarketPage() {
     buyer: getBuyerName(offer),
     amount: formatMoney(offer.offer_amount, offer.currency_symbol),
     status: <Badge tone={getOfferStatusTone(offer.status)}>{formatOfferStatus(offer.status)}</Badge>,
+    funds: (
+      <Badge tone={getOfferFundsStatus(offer).tone}>
+        {getOfferFundsStatus(offer).label}
+      </Badge>
+    ),
     counter: offer.counter_amount ? formatMoney(offer.counter_amount, offer.currency_symbol) : "Sin contraoferta",
     message: offer.message || "Sin mensaje",
     date: formatDate(offer.created_at),
@@ -344,6 +381,11 @@ export default async function MarketPage() {
     ),
     buyer: getBuyerName(offer),
     amount: formatMoney(offer.offer_amount, offer.currency_symbol),
+    funds: (
+      <Badge tone={getOfferFundsStatus(offer).tone}>
+        {getOfferFundsStatus(offer).label}
+      </Badge>
+    ),
     counter: offer.counter_amount ? formatMoney(offer.counter_amount, offer.currency_symbol) : "Sin contraoferta",
     status: <Badge tone={getOfferStatusTone(offer.status)}>{formatOfferStatus(offer.status)}</Badge>,
     response: offer.seller_response || "Sin respuesta",
@@ -451,6 +493,7 @@ export default async function MarketPage() {
               { key: "listing", label: "Publicacion" },
               { key: "buyer", label: "Comprador" },
               { key: "amount", label: "Oferta" },
+              { key: "funds", label: "Fondos" },
               { key: "counter", label: "Contraoferta" },
               { key: "status", label: "Estado" },
               { key: "message", label: "Mensaje" },
@@ -481,6 +524,7 @@ export default async function MarketPage() {
               { key: "listing", label: "Publicacion" },
               { key: "buyer", label: "Comprador" },
               { key: "amount", label: "Oferta" },
+              { key: "funds", label: "Fondos" },
               { key: "counter", label: "Contraoferta" },
               { key: "status", label: "Estado" },
               { key: "response", label: "Respuesta" },
