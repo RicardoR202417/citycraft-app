@@ -1,11 +1,11 @@
 import {
   ArrowLeft,
   BadgeDollarSign,
-  Building2,
   ClipboardCheck,
   Gavel,
   HandCoins,
   Landmark,
+  Layers3,
   MapPinned,
   Percent,
   ShieldCheck,
@@ -34,6 +34,7 @@ import {
 import { isGlobalAdmin, isGovernmentMember, requireProfile } from "../../../../lib/auth";
 import { formatMoney } from "../../../../lib/economy";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../../lib/supabase/server";
+import { PropertyFloorForm } from "./PropertyFloorForm";
 import styles from "./page.module.css";
 
 export const metadata = {
@@ -133,7 +134,7 @@ export default async function PropertyDetailPage({ params }) {
     serviceSupabase
       .from("properties")
       .select(
-        "id, district_id, parent_property_id, name, slug, address, type, status, size_blocks, current_value, description, created_at, updated_at, districts(id, name, slug, base_appreciation_rate), parent:parent_property_id(id, name, slug)"
+        "id, district_id, parent_property_id, name, slug, address, type, status, size_blocks, land_area_blocks, building_area_blocks, current_value, description, created_at, updated_at, districts(id, name, slug, base_appreciation_rate), parent:parent_property_id(id, name, slug)"
       )
       .eq("slug", routeParams.slug)
       .maybeSingle(),
@@ -153,6 +154,7 @@ export default async function PropertyDetailPage({ params }) {
     { data: latestAppreciation },
     { data: activeListings = [] },
     { data: activeAuctions = [] },
+    { data: floors = [] },
     { data: adminMemberships = [] }
   ] = await Promise.all([
     serviceSupabase
@@ -195,6 +197,11 @@ export default async function PropertyDetailPage({ params }) {
       .eq("status", "active")
       .order("ends_at", { ascending: true })
       .limit(10),
+    serviceSupabase
+      .from("property_floors")
+      .select("id, floor_number, name, area_blocks, updated_at")
+      .eq("property_id", property.id)
+      .order("floor_number", { ascending: true }),
     supabase
       .from("organization_members")
       .select("organization_id, role")
@@ -211,9 +218,8 @@ export default async function PropertyDetailPage({ params }) {
     previousIndex: latestAppreciation?.new_index
   });
   const isVisible = property.status === "active" || property.status === "planned";
-  const terrainArea = Number(property.size_blocks || 0);
-  const constructionArea = 0;
-  const floors = [];
+  const terrainArea = Number(property.land_area_blocks || property.size_blocks || 0);
+  const constructionArea = Number(property.building_area_blocks || 0);
 
   const summaryItems = [
     { label: "Delegacion", value: property.districts?.name || "Sin delegacion" },
@@ -230,6 +236,18 @@ export default async function PropertyDetailPage({ params }) {
     { label: "Plantas registradas", value: floors.length },
     { label: "Propiedad matriz", value: property.parent?.name || "No aplica" }
   ];
+
+  const floorRows = asArray(floors).map((floor) => ({
+    id: floor.id,
+    name: (
+      <div className={styles.nameCell}>
+        <strong>{floor.name}</strong>
+        <span>Planta {floor.floor_number}</span>
+      </div>
+    ),
+    area: `${Number(floor.area_blocks || 0).toLocaleString("es-MX")} bloques`,
+    updatedAt: formatDate(floor.updated_at)
+  }));
 
   const ownerRows = asArray(owners).map((owner) => ({
     id: owner.id,
@@ -372,21 +390,33 @@ export default async function PropertyDetailPage({ params }) {
 
           <CrudPanel title="Areas">
             <DataList items={areaItems} />
-            {floors.length ? (
+            {floorRows.length ? (
               <Table
                 columns={[
                   { key: "name", label: "Planta" },
-                  { key: "area", label: "Area" }
+                  { key: "area", label: "Area" },
+                  { key: "updatedAt", label: "Actualizada" }
                 ]}
-                rows={floors}
+                getRowKey={(row) => row.id}
+                rows={floorRows}
               />
             ) : (
               <EmptyState
-                description="El desglose por plantas se mostrara aqui cuando el modelo de areas quede registrado."
-                icon={Building2}
+                description="Las propiedades tipo terreno pueden no tener plantas. Gobierno o admin pueden agregarlas cuando exista construccion."
+                icon={Layers3}
                 title="Sin plantas registradas"
               />
             )}
+            {isGovernment || isAdmin ? (
+              <div className={styles.floorForm}>
+                <SectionHeader
+                  description="Cada planta recalcula automaticamente el area total construida."
+                  eyebrow="Gobierno/Admin"
+                  title="Agregar planta"
+                />
+                <PropertyFloorForm propertyId={property.id} propertySlug={property.slug} />
+              </div>
+            ) : null}
           </CrudPanel>
         </CrudWorkspace>
 
