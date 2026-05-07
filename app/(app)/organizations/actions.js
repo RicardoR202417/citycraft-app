@@ -59,6 +59,30 @@ function friendlyMemberShareError(error) {
   return "No se pudo actualizar el socio. Revisa los datos e intenta nuevamente.";
 }
 
+function friendlyInvitationError(error) {
+  if (!error?.message) {
+    return "No se pudo procesar la invitacion. Intenta nuevamente.";
+  }
+
+  if (error.code === "23505") {
+    return "Ya existe una invitacion pendiente para ese jugador.";
+  }
+
+  if (error.code === "23514") {
+    return "Revisa jugador, rol y estado de la invitacion antes de continuar.";
+  }
+
+  if (error.code === "42501") {
+    return "No tienes permisos para realizar esta accion.";
+  }
+
+  if (error.code === "23503") {
+    return "No se encontro la organizacion, jugador o invitacion indicada.";
+  }
+
+  return "No se pudo procesar la invitacion. Revisa los datos e intenta nuevamente.";
+}
+
 export async function createPrivateOrganization(_previousState = DEFAULT_STATE, formData) {
   await requireProfile("/organizations");
   const name = getField(formData, "name");
@@ -165,5 +189,104 @@ export async function updateOrganizationMemberShare(_previousState = DEFAULT_STA
   return {
     error: "",
     message: "Participacion actualizada."
+  };
+}
+
+export async function inviteOrganizationMember(_previousState = DEFAULT_STATE, formData) {
+  await requireProfile("/organizations");
+  const organizationId = getField(formData, "organization_id");
+  const organizationSlug = getField(formData, "organization_slug");
+  const invitedProfileId = getField(formData, "invited_profile_id");
+  const role = getField(formData, "role");
+  const message = getField(formData, "message");
+  const validRoles = new Set(["owner", "admin", "member"]);
+
+  if (!organizationId || !invitedProfileId) {
+    return {
+      error: "Selecciona una organizacion y un jugador para invitar.",
+      message: ""
+    };
+  }
+
+  if (!validRoles.has(role)) {
+    return {
+      error: "Selecciona un rol valido para la invitacion.",
+      message: ""
+    };
+  }
+
+  if (message.length > 500) {
+    return {
+      error: "El mensaje no puede superar 500 caracteres.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("invite_organization_member", {
+    p_invited_profile_id: invitedProfileId,
+    p_message: message || null,
+    p_organization_id: organizationId,
+    p_role: role
+  });
+
+  if (error) {
+    return {
+      error: friendlyInvitationError(error),
+      message: ""
+    };
+  }
+
+  revalidatePath("/organizations");
+
+  if (organizationSlug) {
+    revalidatePath(`/organizations/${organizationSlug}`);
+  }
+
+  return {
+    error: "",
+    message: "Invitacion enviada. El jugador podra aceptarla desde Organizaciones."
+  };
+}
+
+export async function respondOrganizationInvitation(_previousState = DEFAULT_STATE, formData) {
+  await requireProfile("/organizations");
+  const invitationId = getField(formData, "invitation_id");
+  const response = getField(formData, "response");
+  const validResponses = new Set(["accepted", "rejected"]);
+
+  if (!invitationId) {
+    return {
+      error: "No se encontro la invitacion.",
+      message: ""
+    };
+  }
+
+  if (!validResponses.has(response)) {
+    return {
+      error: "Selecciona si aceptas o rechazas la invitacion.",
+      message: ""
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("respond_organization_invitation", {
+    p_invitation_id: invitationId,
+    p_response: response
+  });
+
+  if (error) {
+    return {
+      error: friendlyInvitationError(error),
+      message: ""
+    };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/organizations");
+
+  return {
+    error: "",
+    message: response === "accepted" ? "Invitacion aceptada. Ya eres miembro activo." : "Invitacion rechazada."
   };
 }

@@ -36,7 +36,9 @@ function formatNotificationType(type) {
     government_fine: "Multa",
     market_offer_created: "Oferta",
     market_offer_response: "Respuesta",
-    market_sale_settled: "Venta cerrada"
+    market_sale_settled: "Venta cerrada",
+    organization_invitation_created: "Invitacion",
+    organization_invitation_response: "Respuesta invitacion"
   };
 
   return labels[type] || type;
@@ -58,7 +60,9 @@ function getNotificationTone(type, readAt) {
     government_fine: "danger",
     market_offer_created: "info",
     market_offer_response: "warning",
-    market_sale_settled: "success"
+    market_sale_settled: "success",
+    organization_invitation_created: "info",
+    organization_invitation_response: "success"
   };
 
   return tones[type] || "info";

@@ -550,6 +550,39 @@ Reglas:
   usando acciones de servidor con `service_role`, pero cada cambio debe generar
   auditoria `admin.organization_member_*`.
 
+## Invitaciones de organizaciones
+
+Archivo:
+
+```text
+supabase/migrations/20260430400000_organization_invitations.sql
+```
+
+Incluye:
+
+- Tipo `organization_invitation_status`: `pending`, `accepted`, `rejected`,
+  `cancelled`.
+- Tabla `organization_invitations` para registrar invitaciones auditables.
+- RPC `invite_organization_member`.
+- RPC `respond_organization_invitation`.
+- Notificaciones `organization_invitation_created` y
+  `organization_invitation_response`.
+- Auditoria `organization.invitation_created` y
+  `organization.invitation_responded`.
+
+Reglas:
+
+- Solo `owner` o `admin` de una organizacion privada pueden invitar jugadores.
+- El gobierno no usa este flujo; sus miembros se administran desde el panel
+  global.
+- Solo puede existir una invitacion pendiente por jugador y organizacion.
+- Solo el jugador invitado puede aceptar o rechazar su invitacion.
+- Al aceptar, se crea o reactiva la membresia con rol propuesto y `0%` de
+  participacion inicial.
+- Al rechazar, la invitacion queda historica sin crear membresia.
+- El historial queda visible para administradores de la organizacion y para el
+  jugador invitado segun RLS.
+
 ## Patrimonio inicial de organizaciones
 
 Archivo:

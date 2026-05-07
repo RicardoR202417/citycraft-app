@@ -4,6 +4,7 @@ import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader, Table }
 import { requireProfile } from "../../../lib/auth";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { OrganizationForm } from "./OrganizationForm";
+import { OrganizationInvitationResponseForm } from "./OrganizationInvitationResponseForm";
 import styles from "./page.module.css";
 
 export const metadata = {
@@ -41,6 +42,17 @@ export default async function OrganizationsPage() {
     throw new Error(`Could not load organizations: ${error.message}`);
   }
 
+  const { data: pendingInvitations = [], error: invitationsError } = await supabase
+    .from("organization_invitations")
+    .select("id, role, message, created_at, organizations(id, name, slug, description, type, is_public)")
+    .eq("invited_profile_id", profile.id)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (invitationsError) {
+    throw new Error(`Could not load organization invitations: ${invitationsError.message}`);
+  }
+
   const rows = memberships.map((membership) => ({
     id: membership.id,
     name: (
@@ -74,6 +86,26 @@ export default async function OrganizationsPage() {
     ) : (
       "No disponible"
     )
+  }));
+
+  const invitationRows = pendingInvitations.map((invitation) => ({
+    id: invitation.id,
+    name: (
+      <div className={styles.organizationName}>
+        <strong>{invitation.organizations?.name || "Organizacion no disponible"}</strong>
+        <span>{invitation.organizations?.slug || "sin-slug"}</span>
+      </div>
+    ),
+    role: <Badge tone={invitation.role === "owner" ? "success" : invitation.role === "admin" ? "info" : "neutral"}>{formatRole(invitation.role)}</Badge>,
+    type: invitation.organizations?.type === "government" ? "Gobierno" : "Privada",
+    visibility: (
+      <Badge tone={invitation.organizations?.is_public ? "info" : "neutral"}>
+        {invitation.organizations?.is_public ? "Publica" : "Privada"}
+      </Badge>
+    ),
+    message: invitation.message || "Sin mensaje",
+    invitedAt: formatDate(invitation.created_at),
+    response: <OrganizationInvitationResponseForm invitationId={invitation.id} />
   }));
 
   return (
@@ -119,6 +151,35 @@ export default async function OrganizationsPage() {
           </div>
         </Card>
       </section>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Invitaciones"
+          title="Invitaciones pendientes"
+          description="Solo el jugador invitado puede aceptar o rechazar una invitacion."
+        />
+        {invitationRows.length ? (
+          <Table
+            columns={[
+              { key: "name", label: "Organizacion" },
+              { key: "role", label: "Rol propuesto" },
+              { key: "type", label: "Tipo" },
+              { key: "visibility", label: "Visibilidad" },
+              { key: "message", label: "Mensaje" },
+              { key: "invitedAt", label: "Invitada" },
+              { key: "response", label: "Responder" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={invitationRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando una organizacion te invite, podras responder desde aqui."
+            icon={Building2}
+            title="Sin invitaciones pendientes"
+          />
+        )}
+      </Card>
 
       <Card className={styles.card}>
         <SectionHeader

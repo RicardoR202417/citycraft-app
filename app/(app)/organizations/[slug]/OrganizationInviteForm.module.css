@@ -1,0 +1,77 @@
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(160px, 0.8fr);
+  gap: 12px;
+}
+
+.form label {
+  display: grid;
+  gap: 8px;
+  color: var(--foreground);
+  font-weight: 800;
+}
+
+.form select,
+.form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--foreground);
+  padding: 0 12px;
+  font: inherit;
+}
+
+.form select {
+  min-height: 42px;
+}
+
+.form textarea {
+  min-height: 86px;
+  padding-block: 12px;
+  resize: vertical;
+}
+
+.form select:focus,
+.form textarea:focus {
+  border-color: var(--accent);
+  outline: 0;
+}
+
+.error,
+.message {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  line-height: 1.4;
+}
+
+.error {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+
+.message {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}

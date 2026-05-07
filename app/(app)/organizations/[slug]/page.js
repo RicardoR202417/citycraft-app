@@ -5,6 +5,7 @@ import { requireProfile } from "../../../../lib/auth";
 import { formatMoney, formatWalletBalance } from "../../../../lib/economy";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../../lib/supabase/server";
 import { MemberShareForm } from "./MemberShareForm";
+import { OrganizationInviteForm } from "./OrganizationInviteForm";
 import styles from "./page.module.css";
 
 export const metadata = {
@@ -100,6 +101,8 @@ export default async function OrganizationDetailPage({ params }) {
     redirect("/organizations");
   }
 
+  const canManageMembers = ["owner", "admin"].includes(membership.role);
+
   const { data: wallet } = await supabase
     .from("wallets")
     .select("id, balance, currency_symbol, updated_at")
@@ -138,6 +141,29 @@ export default async function OrganizationDetailPage({ params }) {
     throw new Error(`Could not load organization members: ${membersError.message}`);
   }
 
+  const { data: invitationRows = [], error: invitationsError } = await serviceSupabase
+    .from("organization_invitations")
+    .select("id, role, status, message, created_at, responded_at, invited_profile_id, invited_by, profiles!organization_invitations_invited_profile_id_fkey(gamertag, display_name)")
+    .eq("organization_id", organization.id)
+    .order("created_at", { ascending: false })
+    .limit(30);
+
+  if (invitationsError) {
+    throw new Error(`Could not load organization invitations: ${invitationsError.message}`);
+  }
+
+  const { data: playerRows = [], error: playersError } = canManageMembers
+    ? await serviceSupabase
+        .from("profiles")
+        .select("id, gamertag, display_name, gamertag_uid")
+        .order("gamertag", { ascending: true })
+        .limit(100)
+    : { data: [] };
+
+  if (playersError) {
+    throw new Error(`Could not load players for invitations: ${playersError.message}`);
+  }
+
   const { data: organizationPayouts = [], error: organizationPayoutsError } = await supabase
     .from("organization_daily_payouts")
     .select(
@@ -153,9 +179,22 @@ export default async function OrganizationDetailPage({ params }) {
   }
 
   const portfolioValue = Number(marketValue.property_value || 0);
-  const canManageMembers = ["owner", "admin"].includes(membership.role);
   const assignedPercent = memberRows.reduce((total, member) => total + Number(member.ownership_percent || 0), 0);
   const walletCurrency = wallet?.currency_symbol;
+  const activeMemberProfileIds = new Set(memberRows.map((member) => member.profile_id));
+  const pendingInvitationProfileIds = new Set(
+    invitationRows
+      .filter((invitation) => invitation.status === "pending")
+      .map((invitation) => invitation.invited_profile_id)
+  );
+  const playerOptions = playerRows
+    .filter((player) => player.id !== profile.id)
+    .filter((player) => !activeMemberProfileIds.has(player.id))
+    .filter((player) => !pendingInvitationProfileIds.has(player.id))
+    .map((player) => ({
+      id: player.id,
+      label: `${player.display_name || player.gamertag}${player.gamertag_uid ? ` (${player.gamertag_uid})` : ""}`
+    }));
 
   const participationItems = [
     { label: "Rol", value: formatRole(membership.role) },
@@ -208,6 +247,25 @@ export default async function OrganizationDetailPage({ params }) {
     ) : (
       "Solo lectura"
     )
+  }));
+
+  const invitationTableRows = invitationRows.map((invitation) => ({
+    id: invitation.id,
+    player: (
+      <div className={styles.propertyName}>
+        <strong>{invitation.profiles?.display_name || invitation.profiles?.gamertag || "Jugador no disponible"}</strong>
+        <span>{invitation.profiles?.gamertag || "Sin gamertag"}</span>
+      </div>
+    ),
+    role: <Badge tone={invitation.role === "owner" ? "success" : invitation.role === "admin" ? "info" : "neutral"}>{formatRole(invitation.role)}</Badge>,
+    status: (
+      <Badge tone={invitation.status === "pending" ? "warning" : invitation.status === "accepted" ? "success" : "neutral"}>
+        {invitation.status === "pending" ? "Pendiente" : invitation.status === "accepted" ? "Aceptada" : invitation.status === "rejected" ? "Rechazada" : "Cancelada"}
+      </Badge>
+    ),
+    message: invitation.message || "Sin mensaje",
+    createdAt: formatDate(invitation.created_at),
+    respondedAt: formatDate(invitation.responded_at)
   }));
 
   const payoutRows = organizationPayouts.map((payout) => ({
@@ -318,6 +376,57 @@ export default async function OrganizationDetailPage({ params }) {
             description="Cuando existan socios activos, apareceran aqui con su rol y participacion."
             icon={Building2}
             title="Sin socios activos"
+          />
+        )}
+      </Card>
+
+      {canManageMembers ? (
+        <Card className={styles.card}>
+          <SectionHeader
+            eyebrow="Invitar"
+            title="Invitar nuevos socios"
+            description="La invitacion queda pendiente hasta que el jugador la acepte desde su panel de organizaciones."
+          />
+          {playerOptions.length ? (
+            <OrganizationInviteForm
+              organizationId={organization.id}
+              organizationSlug={organization.slug}
+              playerOptions={playerOptions}
+            />
+          ) : (
+            <EmptyState
+              description="No hay jugadores disponibles para invitar o ya tienen invitacion pendiente."
+              icon={Building2}
+              title="Sin jugadores disponibles"
+            />
+          )}
+        </Card>
+      ) : null}
+
+      <Card className={styles.card}>
+        <SectionHeader
+          eyebrow="Historial"
+          title="Invitaciones recientes"
+          description="Registro de invitaciones enviadas por administradores de la organizacion."
+        />
+        {invitationTableRows.length ? (
+          <Table
+            columns={[
+              { key: "player", label: "Jugador" },
+              { key: "role", label: "Rol propuesto" },
+              { key: "status", label: "Estado" },
+              { key: "message", label: "Mensaje" },
+              { key: "createdAt", label: "Invitada" },
+              { key: "respondedAt", label: "Respondida" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={invitationTableRows}
+          />
+        ) : (
+          <EmptyState
+            description="Cuando invites jugadores, el historial aparecera aqui con estado pendiente, aceptado o rechazado."
+            icon={Building2}
+            title="Sin invitaciones registradas"
           />
         )}
       </Card>

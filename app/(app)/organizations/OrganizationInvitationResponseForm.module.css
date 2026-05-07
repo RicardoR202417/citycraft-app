@@ -1,0 +1,30 @@
+.wrap {
+  display: grid;
+  min-width: 180px;
+  gap: 8px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.error,
+.message {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.error {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+
+.message {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+}
