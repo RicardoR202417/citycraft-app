@@ -1,12 +1,52 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight, Menu, Moon, Sun, X } from "lucide-react";
+import {
+  Archive,
+  Bell,
+  Building2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CircleDollarSign,
+  ClipboardCheck,
+  Gavel,
+  Home,
+  Landmark,
+  LayoutDashboard,
+  LogIn,
+  MapPinned,
+  Menu,
+  Moon,
+  Shield,
+  Store,
+  Sun,
+  UserCircle,
+  Users,
+  X
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import styles from "./NavigationShell.module.css";
 
 const THEME_STORAGE_KEY = "citycraft-theme";
+const ICONS = {
+  archive: Archive,
+  bell: Bell,
+  building: Building2,
+  clipboard: ClipboardCheck,
+  dashboard: LayoutDashboard,
+  gavel: Gavel,
+  home: Home,
+  landmark: Landmark,
+  login: LogIn,
+  map: MapPinned,
+  money: CircleDollarSign,
+  shield: Shield,
+  store: Store,
+  user: UserCircle,
+  users: Users
+};
 const THEME_OPTIONS = [
   { label: "Sistema", value: "system" },
   { icon: Sun, label: "Claro", value: "light" },
@@ -167,7 +207,6 @@ function ThemeControl() {
 }
 
 function NavigationItem({ isCollapsed, item, onNavigate, onToggleGroup, openGroups, pathname }) {
-  const Icon = item.icon;
   const hasChildren = Boolean(item.children?.length);
 
   if (hasChildren) {
@@ -184,7 +223,7 @@ function NavigationItem({ isCollapsed, item, onNavigate, onToggleGroup, openGrou
           title={isCollapsed ? item.label : undefined}
           type="button"
         >
-          <Icon aria-hidden="true" size={18} />
+          <NavigationIcon name={item.icon} size={18} />
           <span>{item.label}</span>
           <ChevronDown aria-hidden="true" className={isOpen ? styles.chevronOpen : ""} size={16} />
         </button>
@@ -192,7 +231,6 @@ function NavigationItem({ isCollapsed, item, onNavigate, onToggleGroup, openGrou
         {isOpen && !isCollapsed ? (
           <div className={styles.submenu}>
             {item.children.map((child) => {
-              const ChildIcon = child.icon;
               const isActive = isPathActive(pathname, child.href);
 
               return (
@@ -203,7 +241,7 @@ function NavigationItem({ isCollapsed, item, onNavigate, onToggleGroup, openGrou
                   key={child.href}
                   onClick={onNavigate}
                 >
-                  <ChildIcon aria-hidden="true" size={15} />
+                  <NavigationIcon name={child.icon} size={15} />
                   <span>{child.label}</span>
                 </Link>
               );
@@ -224,7 +262,7 @@ function NavigationItem({ isCollapsed, item, onNavigate, onToggleGroup, openGrou
       onClick={onNavigate}
       title={isCollapsed ? item.label : undefined}
     >
-      <Icon aria-hidden="true" size={18} />
+      <NavigationIcon name={item.icon} size={18} />
       <span>{item.label}</span>
     </Link>
   );
@@ -232,6 +270,11 @@ function NavigationItem({ isCollapsed, item, onNavigate, onToggleGroup, openGrou
 
 function isPathActive(pathname, href) {
   return pathname === href || (href !== "/" && pathname?.startsWith(`${href}/`));
+}
+
+function NavigationIcon({ name, size }) {
+  const Icon = ICONS[name] || Home;
+  return <Icon aria-hidden="true" size={size} />;
 }
 
 function getInitialTheme() {

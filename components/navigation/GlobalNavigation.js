@@ -1,20 +1,3 @@
-import {
-  Archive,
-  Bell,
-  Building2,
-  CircleDollarSign,
-  ClipboardCheck,
-  Gavel,
-  Home,
-  Landmark,
-  LayoutDashboard,
-  LogIn,
-  MapPinned,
-  Shield,
-  Store,
-  Users,
-  UserCircle
-} from "lucide-react";
 import { getCurrentProfile, isGlobalAdmin, isGovernmentMember } from "../../lib/auth";
 import { createSupabaseServerClient } from "../../lib/supabase/server";
 import { NavigationShell } from "./NavigationShell";
@@ -33,49 +16,49 @@ export async function GlobalNavigation() {
   }
 
   const links = [
-    { href: "/", icon: Home, label: "Foro" },
-    { href: "/constructions", icon: Building2, label: "Construcciones" },
-    { href: "/districts", icon: MapPinned, label: "Delegaciones", requiresAuth: true },
-    { href: "/properties", icon: Landmark, label: "Propiedades", requiresAuth: true },
-    { href: "/market", icon: Store, label: "Mercado", requiresAuth: true },
-    { href: "/auctions", icon: Gavel, label: "Subastas", requiresAuth: true },
-    { href: "/organizations", icon: CircleDollarSign, label: "Organizaciones", requiresAuth: true },
-    { href: "/notifications", icon: Bell, label: "Notificaciones", requiresAuth: true },
-    { href: "/profile", icon: UserCircle, label: "Perfil", requiresAuth: true },
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", requiresAuth: true }
+    { href: "/", icon: "home", label: "Foro" },
+    { href: "/constructions", icon: "building", label: "Construcciones" },
+    { href: "/districts", icon: "map", label: "Delegaciones", requiresAuth: true },
+    { href: "/properties", icon: "landmark", label: "Propiedades", requiresAuth: true },
+    { href: "/market", icon: "store", label: "Mercado", requiresAuth: true },
+    { href: "/auctions", icon: "gavel", label: "Subastas", requiresAuth: true },
+    { href: "/organizations", icon: "money", label: "Organizaciones", requiresAuth: true },
+    { href: "/notifications", icon: "bell", label: "Notificaciones", requiresAuth: true },
+    { href: "/profile", icon: "user", label: "Perfil", requiresAuth: true },
+    { href: "/dashboard", icon: "dashboard", label: "Dashboard", requiresAuth: true }
   ];
 
   if (hasGovernmentAccess) {
     links.push({
-      icon: Shield,
+      icon: "shield",
       key: "government",
       label: "Gobierno",
       children: [
-        { href: "/government", icon: Shield, label: "Panel gobierno" },
-        { href: "/districts", icon: MapPinned, label: "Delegaciones" },
-        { href: "/properties", icon: Landmark, label: "Propiedades" },
-        { href: "/transparency/government", icon: ClipboardCheck, label: "Transparencia" }
+        { href: "/government", icon: "shield", label: "Panel gobierno" },
+        { href: "/districts", icon: "map", label: "Delegaciones" },
+        { href: "/properties", icon: "landmark", label: "Propiedades" },
+        { href: "/transparency/government", icon: "clipboard", label: "Transparencia" }
       ]
     });
   }
 
   if (hasAdminAccess) {
     links.push({
-      icon: Shield,
+      icon: "shield",
       key: "admin",
       label: "Admin",
       children: [
-        { href: "/admin", icon: Shield, label: "Panel admin" },
-        { href: "/admin/players", icon: Users, label: "Jugadores" },
-        { href: "/admin/properties", icon: Landmark, label: "Propiedades" },
-        { href: "/admin/organizations", icon: CircleDollarSign, label: "Organizaciones" },
-        { href: "/admin/audit", icon: Archive, label: "Auditoria" }
+        { href: "/admin", icon: "shield", label: "Panel admin" },
+        { href: "/admin/players", icon: "users", label: "Jugadores" },
+        { href: "/admin/properties", icon: "landmark", label: "Propiedades" },
+        { href: "/admin/organizations", icon: "money", label: "Organizaciones" },
+        { href: "/admin/audit", icon: "archive", label: "Auditoria" }
       ]
     });
   }
 
   if (!profile) {
-    links.push({ href: "/login", icon: LogIn, label: "Entrar" });
+    links.push({ href: "/login", icon: "login", label: "Entrar" });
   }
 
   return (
