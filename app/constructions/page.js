@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, CalendarDays, ImageIcon, MapPinned } from "lucide-react";
+import { ArrowLeft, Building2, CalendarDays, ImageIcon, MapPinned, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader } from "../../components/ui";
@@ -38,9 +38,14 @@ export default async function PublicConstructionsPage({ searchParams }) {
     <main className={styles.page}>
       <PageHeader
         actions={
-          <LinkButton href="/" icon={ArrowLeft} variant="secondary">
-            Inicio
-          </LinkButton>
+          <div className={styles.headerActions}>
+            <LinkButton href="/" icon={ArrowLeft} variant="secondary">
+              Inicio
+            </LinkButton>
+            <LinkButton href="/constructions/new" icon={Plus}>
+              Publicar
+            </LinkButton>
+          </div>
         }
         description="Explora construcciones que los jugadores han decidido publicar para mostrar el crecimiento de la ciudad."
         eyebrow="Exposicion publica"

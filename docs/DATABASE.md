@@ -264,6 +264,13 @@ Reglas:
 - Solo aparecen publicaciones con `is_public = true` y `published_at <= now()`.
 - La vista publica expone titulo, resumen, autor visible, delegacion,
   propiedad relacionada e imagen aprobada.
+- Los jugadores autenticados pueden crear publicaciones desde
+  `/constructions/new` con titulo, descripcion, visibilidad, imagen opcional,
+  delegacion y propiedad relacionada.
+- Si la publicacion se marca publica, se guarda `published_at` y la imagen
+  subida queda marcada como publica en `media_assets`.
+- Si la publicacion se guarda privada, no aparece en
+  `public_construction_posts` ni en el feed anonimo.
 - Si la portada vive en Storage, la aplicacion genera una URL firmada desde
   servidor solo despues de leer el registro publico.
 - Las publicaciones privadas o futuras no aparecen en el feed anonimo.

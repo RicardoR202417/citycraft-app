@@ -5,6 +5,13 @@
   padding: var(--space-page);
 }
 
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -206,6 +213,14 @@
 }
 
 @media (max-width: 680px) {
+  .headerActions {
+    justify-content: stretch;
+  }
+
+  .headerActions a {
+    flex: 1 1 140px;
+  }
+
   .summary,
   .grid {
     grid-template-columns: 1fr;
