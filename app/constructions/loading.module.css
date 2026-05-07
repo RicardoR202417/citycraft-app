@@ -1,0 +1,95 @@
+.page {
+  display: grid;
+  gap: 24px;
+  min-height: 100vh;
+  padding: var(--space-page);
+}
+
+.headerSkeleton,
+.summary div,
+.card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.headerSkeleton {
+  min-height: 150px;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.summary div {
+  min-height: 150px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.cover {
+  aspect-ratio: 16 / 10;
+  background:
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 12%, transparent), transparent),
+    var(--surface-subtle);
+  background-size: 220% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+.lines {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.lines span,
+.lines strong,
+.lines p {
+  display: block;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+}
+
+.lines span {
+  width: 38%;
+}
+
+.lines strong {
+  width: 72%;
+}
+
+.lines p {
+  width: 100%;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 220% 0;
+  }
+
+  to {
+    background-position: -220% 0;
+  }
+}
+
+@media (max-width: 1060px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .summary,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

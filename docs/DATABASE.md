@@ -264,6 +264,14 @@ Reglas:
 - Solo aparecen publicaciones con `is_public = true` y `published_at <= now()`.
 - La vista publica expone titulo, resumen, autor visible, delegacion,
   propiedad relacionada e imagen aprobada.
+- El feed usa paginacion de 6 elementos por pagina mediante
+  `PUBLIC_CONSTRUCTION_PAGE_SIZE`.
+- Si se pide una pagina fuera de rango, la aplicacion conserva el total y
+  normaliza la respuesta a la ultima pagina disponible.
+- Las imagenes se renderizan con `next/image`, `sizes` responsivo, calidad
+  acotada y formatos modernos configurados en `next.config.mjs`.
+- Las URLs firmadas de Storage se generan solo para las publicaciones de la
+  pagina actual y duran 15 minutos.
 - Los jugadores autenticados pueden crear publicaciones desde
   `/constructions/new` con titulo, descripcion, visibilidad, imagen opcional,
   delegacion y propiedad relacionada.

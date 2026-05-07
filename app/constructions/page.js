@@ -74,13 +74,15 @@ export default async function PublicConstructionsPage({ searchParams }) {
 
         {feed.posts.length ? (
           <div className={styles.grid}>
-            {feed.posts.map((post) => (
+            {feed.posts.map((post, index) => (
               <article className={styles.postCard} key={post.id}>
                 <div className={styles.cover}>
                   {post.cover_image_url ? (
                     <Image
                       alt={`Imagen de ${post.title}`}
                       fill
+                      priority={index === 0}
+                      quality={72}
                       sizes="(max-width: 680px) 100vw, (max-width: 1060px) 50vw, 33vw"
                       src={post.cover_image_url}
                     />
