@@ -2,7 +2,7 @@
 
 import { MessageSquarePlus } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../components/ui";
+import { ActionFeedback, Button } from "../../../components/ui";
 import { createConstructionComment } from "./actions";
 import styles from "./CommentForm.module.css";
 
@@ -22,8 +22,7 @@ export function CommentForm({ postId, slug }) {
         <textarea maxLength={1000} minLength={2} name="body" required rows={4} />
       </label>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending} icon={MessageSquarePlus} type="submit">

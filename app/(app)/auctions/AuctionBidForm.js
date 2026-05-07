@@ -2,7 +2,7 @@
 
 import { HandCoins } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../components/ui";
+import { ActionFeedback, Button } from "../../../components/ui";
 import { createAuctionBid } from "./actions";
 import styles from "./AuctionBidForm.module.css";
 
@@ -37,8 +37,7 @@ export function AuctionBidForm({ auctionId, buyerOptions, minimumBid }) {
         <textarea maxLength={500} name="message" rows={3} />
       </label>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <Button disabled={isPending || !buyerOptions.length} icon={HandCoins} size="sm" type="submit">
         {isPending ? "Pujando" : "Pujar"}

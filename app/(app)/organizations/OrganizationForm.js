@@ -2,7 +2,7 @@
 
 import { Building2 } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../components/ui";
+import { ActionFeedback, Button } from "../../../components/ui";
 import { createPrivateOrganization } from "./actions";
 import styles from "./OrganizationForm.module.css";
 
@@ -49,8 +49,7 @@ export function OrganizationForm() {
         La organizacion nacera como privada del sistema, con wallet propia y contigo como propietario inicial del 100%.
       </p>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending} icon={Building2} type="submit">

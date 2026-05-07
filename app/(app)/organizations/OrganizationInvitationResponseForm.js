@@ -2,7 +2,7 @@
 
 import { Check, X } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../components/ui";
+import { ActionFeedback, Button } from "../../../components/ui";
 import { respondOrganizationInvitation } from "./actions";
 import styles from "./OrganizationInvitationResponseForm.module.css";
 
@@ -23,8 +23,7 @@ export function OrganizationInvitationResponseForm({ invitationId }) {
           Rechazar
         </Button>
       </form>
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { Eye } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../components/ui";
+import { ActionFeedback, Button } from "../../../components/ui";
 import { updateProfileVisibility } from "./actions";
 import styles from "./ProfileVisibilityForm.module.css";
 
@@ -74,8 +74,7 @@ export function ProfileVisibilityForm({ visibility }) {
         ))}
       </div>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending} icon={Eye} type="submit" variant="secondary">

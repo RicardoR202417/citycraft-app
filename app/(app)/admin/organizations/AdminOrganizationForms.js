@@ -2,7 +2,7 @@
 
 import { Save, UserMinus, UserPlus } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../../components/ui";
+import { ActionFeedback, Button } from "../../../../components/ui";
 import {
   addAdminOrganizationMember,
   deactivateAdminOrganizationMember,
@@ -44,8 +44,7 @@ export function AddOrganizationMemberForm({ organization, players }) {
           <input defaultValue="0.00" max="100" min="0" name="ownership_percent" step="0.01" type="number" />
         </label>
       </div>
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
       <div className={styles.actions}>
         <Button disabled={isPending} icon={UserPlus} size="sm" type="submit" variant="secondary">
           {isPending ? "Agregando" : "Agregar miembro"}
@@ -87,8 +86,7 @@ export function UpdateOrganizationMemberForm({ member }) {
       <Button disabled={isPending} icon={Save} size="sm" type="submit" variant="secondary">
         {isPending ? "Guardando" : "Guardar"}
       </Button>
-      {state.error ? <p className={styles.inlineError}>{state.error}</p> : null}
-      {state.message ? <p className={styles.inlineMessage}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
     </form>
   );
 }
@@ -106,8 +104,7 @@ export function DeactivateOrganizationMemberForm({ member }) {
       <Button disabled={isPending} icon={UserMinus} size="sm" type="submit" variant="danger">
         {isPending ? "Quitando" : "Desactivar"}
       </Button>
-      {state.error ? <p className={styles.inlineError}>{state.error}</p> : null}
-      {state.message ? <p className={styles.inlineMessage}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
     </form>
   );
 }

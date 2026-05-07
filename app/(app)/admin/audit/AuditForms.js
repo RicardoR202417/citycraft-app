@@ -2,7 +2,7 @@
 
 import { RotateCcw } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../../components/ui";
+import { ActionFeedback, Button } from "../../../../components/ui";
 import { reverseLedgerEntry } from "./actions";
 import styles from "./AuditForms.module.css";
 
@@ -28,8 +28,7 @@ export function ReverseLedgerEntryForm({ entry }) {
       <Button disabled={isPending} icon={RotateCcw} size="sm" type="submit" variant="danger">
         {isPending ? "Revirtiendo" : "Revertir"}
       </Button>
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
     </form>
   );
 }

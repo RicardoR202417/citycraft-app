@@ -2,7 +2,7 @@
 
 import { CalendarCheck } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../components/ui";
+import { ActionFeedback, Button } from "../../../components/ui";
 import { recordAttendance } from "./actions";
 import styles from "./AttendanceForm.module.css";
 
@@ -52,8 +52,7 @@ export function AttendanceForm({ profiles }) {
         genera el pago diario directo del jugador y los pagos proporcionales a sus organizaciones en una sola transaccion.
       </p>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending || !profiles.length} icon={CalendarCheck} type="submit">

@@ -3,7 +3,7 @@
 import { LogIn, UserPlus } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
-import { Button } from "../../components/ui";
+import { ActionFeedback, Button } from "../../components/ui";
 import { normalizeRedirectPath } from "../../lib/auth/routes";
 import { authenticate } from "./actions";
 import styles from "./LoginForm.module.css";
@@ -78,8 +78,7 @@ export function LoginForm() {
         />
       </label>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <Button
         disabled={isPending}

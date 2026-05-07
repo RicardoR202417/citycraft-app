@@ -2,7 +2,7 @@
 
 import { ImagePlus, Send } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../components/ui";
+import { ActionFeedback, Button } from "../../../components/ui";
 import { getConstructionImageLimitLabel } from "../../../lib/storage/constructionImages";
 import { createConstructionPost } from "../actions";
 import styles from "./ConstructionPostForm.module.css";
@@ -77,8 +77,7 @@ export function ConstructionPostForm({ districtOptions, propertyOptions }) {
         <small>JPG, PNG, WebP o GIF. Maximo {getConstructionImageLimitLabel()}.</small>
       </label>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending} icon={Send} type="submit">

@@ -2,7 +2,7 @@
 
 import { CheckCircle2 } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../components/ui";
+import { ActionFeedback, Button } from "../../../components/ui";
 import { decidePropertyPermitRequest } from "./actions";
 import styles from "./PermitDecisionForm.module.css";
 
@@ -36,8 +36,7 @@ export function PermitDecisionForm({ request }) {
         />
       </label>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending} icon={CheckCircle2} size="sm" type="submit" variant="secondary">

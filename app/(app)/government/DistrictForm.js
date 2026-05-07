@@ -2,7 +2,7 @@
 
 import { MapPinPlus } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../components/ui";
+import { ActionFeedback, Button } from "../../../components/ui";
 import { createDistrict } from "./actions";
 import styles from "./DistrictForm.module.css";
 
@@ -49,8 +49,7 @@ export function DistrictForm() {
         <textarea maxLength={240} name="description" rows={4} />
       </label>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending} icon={MapPinPlus} type="submit">

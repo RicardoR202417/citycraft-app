@@ -2,7 +2,7 @@
 
 import { TrendingUp } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../components/ui";
+import { ActionFeedback, Button } from "../../../components/ui";
 import { formatAppreciationRate, formatAppreciationTrend } from "../../../lib/appreciation";
 import { recordDistrictAppreciationSnapshot } from "./actions";
 import styles from "./ValuationForm.module.css";
@@ -40,8 +40,7 @@ export function DistrictAppreciationForm({ districts }) {
         />
       </label>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending || !districts.length} icon={TrendingUp} type="submit">

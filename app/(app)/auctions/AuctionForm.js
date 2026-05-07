@@ -2,7 +2,7 @@
 
 import { Gavel } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../components/ui";
+import { ActionFeedback, Button } from "../../../components/ui";
 import { createAuction } from "./actions";
 import styles from "./AuctionForm.module.css";
 
@@ -66,8 +66,7 @@ export function AuctionForm({ ownershipOptions }) {
         <textarea maxLength={500} name="notes" rows={4} />
       </label>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending} icon={Gavel} type="submit">

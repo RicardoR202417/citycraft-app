@@ -2,7 +2,7 @@
 
 import { Scale } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../components/ui";
+import { ActionFeedback, Button } from "../../../components/ui";
 import { applyGovernmentFine } from "./actions";
 import styles from "./FineForm.module.css";
 
@@ -72,8 +72,7 @@ export function FineForm({ organizations, profiles }) {
         la multa queda registrada como adeudo.
       </p>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending} icon={Scale} type="submit" variant="secondary">

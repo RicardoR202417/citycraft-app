@@ -2,7 +2,7 @@
 
 import { Save } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../../components/ui";
+import { ActionFeedback, Button } from "../../../../components/ui";
 import { updateOrganizationMemberShare } from "../actions";
 import styles from "./MemberShareForm.module.css";
 
@@ -44,8 +44,7 @@ export function MemberShareForm({ membership, organizationSlug }) {
         </Button>
       </div>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
     </form>
   );
 }

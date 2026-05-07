@@ -1,4 +1,5 @@
 export { Badge } from "./Badge";
+export { ActionFeedback } from "./ActionFeedback";
 export { Button } from "./Button";
 export { Card } from "./Card";
 export { DataList } from "./DataList";

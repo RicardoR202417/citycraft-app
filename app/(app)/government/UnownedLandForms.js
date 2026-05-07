@@ -2,7 +2,7 @@
 
 import { LandPlot, Save } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../components/ui";
+import { ActionFeedback, Button } from "../../../components/ui";
 import { createUnownedLand, updateUnownedLandDisposition } from "./actions";
 import styles from "./UnownedLandForms.module.css";
 
@@ -104,8 +104,7 @@ export function UnownedLandForm({ districts }) {
         publicar como disponible, venta o subasta para flujos posteriores del mercado.
       </p>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending || !districts.length} icon={LandPlot} type="submit">
@@ -152,8 +151,7 @@ export function UnownedLandDispositionForm({ land }) {
         {isPending ? "Guardando" : "Guardar"}
       </Button>
 
-      {state.error ? <p className={styles.inlineError}>{state.error}</p> : null}
-      {state.message ? <p className={styles.inlineMessage}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
     </form>
   );
 }

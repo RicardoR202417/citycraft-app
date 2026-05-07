@@ -2,7 +2,7 @@
 
 import { Send } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../../components/ui";
+import { ActionFeedback, Button } from "../../../../components/ui";
 import { inviteOrganizationMember } from "../actions";
 import styles from "./OrganizationInviteForm.module.css";
 
@@ -45,8 +45,7 @@ export function OrganizationInviteForm({ organizationId, organizationSlug, playe
         <textarea maxLength={500} name="message" rows={3} />
       </label>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending || !playerOptions.length} icon={Send} type="submit">

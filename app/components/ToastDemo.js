@@ -1,19 +1,13 @@
 "use client";
 
 import { Bell, CheckCircle2, Gavel, LandPlot } from "lucide-react";
-import { sileo } from "sileo";
+import { toast } from "../../components/ui";
 import styles from "./ToastDemo.module.css";
 
 export function ToastDemo() {
   function showToast(type) {
-    const common = {
-      duration: 5200,
-      roundness: 8
-    };
-
     if (type === "bid") {
-      sileo.info({
-        ...common,
+      toast.info({
         icon: <Gavel size={16} />,
         title: "Nueva puja registrada",
         description: "Distrito Central supera la oferta actual por CC$12,500."
@@ -22,8 +16,7 @@ export function ToastDemo() {
     }
 
     if (type === "property") {
-      sileo.success({
-        ...common,
+      toast.success({
         icon: <LandPlot size={16} />,
         title: "Propiedad transferida",
         description: "Torre Prado ahora pertenece a Horizonte Urbano."
@@ -31,8 +24,7 @@ export function ToastDemo() {
       return;
     }
 
-    sileo.action({
-      ...common,
+    toast.action({
       icon: <CheckCircle2 size={16} />,
       title: "Asistencia validada",
       description: "Se proceso el pago diario del jugador y sus organizaciones.",

@@ -2,7 +2,7 @@
 
 import { Save, Trash2, UserPlus } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "../../../../components/ui";
+import { ActionFeedback, Button } from "../../../../components/ui";
 import {
   addAdminPropertyOwner,
   removeAdminPropertyOwner,
@@ -121,8 +121,7 @@ export function AdminPropertyForm({ districts, parentProperties, property }) {
         <textarea defaultValue={property.description || ""} maxLength={500} name="description" rows={3} />
       </label>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending} icon={Save} size="sm" type="submit" variant="secondary">
@@ -178,8 +177,7 @@ export function AddPropertyOwnerForm({ organizations, players, property }) {
         <input defaultValue="100.00" max="100" min="0.01" name="ownership_percent" required step="0.01" type="number" />
       </label>
 
-      {state.error ? <p className={styles.error}>{state.error}</p> : null}
-      {state.message ? <p className={styles.message}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
 
       <div className={styles.actions}>
         <Button disabled={isPending} icon={UserPlus} size="sm" type="submit" variant="secondary">
@@ -215,8 +213,7 @@ export function UpdatePropertyOwnerForm({ owner }) {
       <Button disabled={isPending} icon={Save} size="sm" type="submit" variant="secondary">
         {isPending ? "Guardando" : "Guardar"}
       </Button>
-      {state.error ? <p className={styles.inlineError}>{state.error}</p> : null}
-      {state.message ? <p className={styles.inlineMessage}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
     </form>
   );
 }
@@ -234,8 +231,7 @@ export function RemovePropertyOwnerForm({ owner }) {
       <Button disabled={isPending} icon={Trash2} size="sm" type="submit" variant="danger">
         {isPending ? "Removiendo" : "Remover"}
       </Button>
-      {state.error ? <p className={styles.inlineError}>{state.error}</p> : null}
-      {state.message ? <p className={styles.inlineMessage}>{state.message}</p> : null}
+      <ActionFeedback state={state} />
     </form>
   );
 }
