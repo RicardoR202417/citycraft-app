@@ -1,6 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  calculateAuctionDurationMinutes,
+  getAuctionDurationLimitLabel,
+  isAuctionDurationAllowed
+} from "../../../lib/auctions/duration";
 import { requireProfile } from "../../../lib/auth";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 
@@ -64,10 +69,14 @@ export async function createAuction(_previousState = DEFAULT_STATE, formData) {
   const propertyOwnerId = getField(formData, "property_owner_id");
   const ownershipPercent = Number(getField(formData, "ownership_percent"));
   const startingPrice = Number(getField(formData, "starting_price"));
-  const durationMinutes = Number(getField(formData, "duration_minutes"));
+  const durationAmount = Number(getField(formData, "duration_amount"));
+  const durationUnit = getField(formData, "duration_unit");
+  const fallbackDurationMinutes = Number(getField(formData, "duration_minutes"));
+  const durationMinutes =
+    calculateAuctionDurationMinutes(durationAmount, durationUnit) ||
+    (Number.isInteger(fallbackDurationMinutes) ? fallbackDurationMinutes : null);
   const title = getField(formData, "title");
   const notes = getField(formData, "notes");
-  const allowedDurations = new Set([20, 600, 1440, 10080]);
 
   if (!propertyOwnerId) {
     return {
@@ -90,9 +99,9 @@ export async function createAuction(_previousState = DEFAULT_STATE, formData) {
     };
   }
 
-  if (!allowedDurations.has(durationMinutes)) {
+  if (!isAuctionDurationAllowed(durationMinutes)) {
     return {
-      error: "Selecciona una duracion valida para la subasta.",
+      error: `Selecciona una duracion valida para la subasta: ${getAuctionDurationLimitLabel()}.`,
       message: ""
     };
   }

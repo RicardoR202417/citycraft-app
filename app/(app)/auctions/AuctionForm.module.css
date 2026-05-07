@@ -16,6 +16,39 @@
   font-weight: 800;
 }
 
+.durationField {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 10px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.durationField legend {
+  padding-inline: 6px;
+  color: var(--foreground);
+  font-weight: 900;
+}
+
+.durationField p,
+.durationField small {
+  margin: 0;
+  color: var(--muted);
+}
+
+.durationField p {
+  color: var(--foreground);
+  font-weight: 800;
+}
+
+.durationGrid {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.7fr) minmax(160px, 1fr);
+  gap: 12px;
+}
+
 .form input,
 .form select,
 .form textarea {
@@ -75,6 +108,10 @@
 
 @media (max-width: 920px) {
   .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .durationGrid {
     grid-template-columns: 1fr;
   }
 }

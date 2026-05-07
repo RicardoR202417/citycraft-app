@@ -1,23 +1,39 @@
 "use client";
 
 import { Gavel } from "lucide-react";
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { ActionFeedback, Button } from "../../../components/ui";
+import { calculateAuctionDurationMinutes, getAuctionDurationLimitLabel } from "../../../lib/auctions/duration";
+import { formatMexicoDateTime } from "../../../lib/datetime";
 import { createAuction } from "./actions";
 import styles from "./AuctionForm.module.css";
 
 const DURATION_OPTIONS = [
-  { label: "20 min", value: 20 },
-  { label: "10 horas", value: 600 },
-  { label: "1 dia", value: 1440 },
-  { label: "1 semana", value: 10080 }
+  { label: "Minutos", value: "minutes" },
+  { label: "Horas", value: "hours" },
+  { label: "Dias", value: "days" },
+  { label: "Semanas", value: "weeks" },
+  { label: "Meses", value: "months" }
 ];
 
+const AUCTION_PREVIEW_BASE_TIME = Date.now();
+
 export function AuctionForm({ ownershipOptions }) {
+  const [durationAmount, setDurationAmount] = useState(1);
+  const [durationUnit, setDurationUnit] = useState("days");
   const [state, formAction, isPending] = useActionState(createAuction, {
     error: "",
     message: ""
   });
+  const durationMinutes = calculateAuctionDurationMinutes(durationAmount, durationUnit);
+
+  const preview = useMemo(() => {
+    if (!durationMinutes) {
+      return "Selecciona una duracion valida";
+    }
+
+    return formatMexicoDateTime(new Date(AUCTION_PREVIEW_BASE_TIME + durationMinutes * 60000));
+  }, [durationMinutes]);
 
   return (
     <form action={formAction} className={styles.form}>
@@ -44,16 +60,42 @@ export function AuctionForm({ ownershipOptions }) {
           <input min="0.01" name="starting_price" required step="0.01" type="number" />
         </label>
 
-        <label>
-          Duracion
-          <select defaultValue="1440" name="duration_minutes" required>
-            {DURATION_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <fieldset className={styles.durationField}>
+          <legend>Duracion</legend>
+          <div className={styles.durationGrid}>
+            <label>
+              Cantidad
+              <input
+                min="1"
+                name="duration_amount"
+                onChange={(event) => setDurationAmount(event.target.value)}
+                required
+                step="1"
+                type="number"
+                value={durationAmount}
+              />
+            </label>
+
+            <label>
+              Unidad
+              <select
+                name="duration_unit"
+                onChange={(event) => setDurationUnit(event.target.value)}
+                required
+                value={durationUnit}
+              >
+                {DURATION_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <input name="duration_minutes" type="hidden" value={durationMinutes || ""} />
+          <p>Cierre estimado: {preview}</p>
+          <small>{getAuctionDurationLimitLabel()}.</small>
+        </fieldset>
       </div>
 
       <label>
