@@ -1,5 +1,18 @@
-import { ArrowLeft, Building2, CalendarCheck, ClipboardCheck, History, Landmark, LandPlot, MapPinned, Scale, ShieldAlert } from "lucide-react";
-import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
+import { ArrowLeft, Building2, CalendarCheck, ClipboardCheck, Eye, History, Landmark, LandPlot, MapPinned, Scale, ShieldAlert, Wrench } from "lucide-react";
+import {
+  Badge,
+  Card,
+  CrudActionList,
+  CrudLayout,
+  CrudPanel,
+  CrudToolbar,
+  CrudWorkspace,
+  EmptyState,
+  LinkButton,
+  PageHeader,
+  SectionHeader,
+  Table
+} from "../../../components/ui";
 import {
   calculateDistrictAppreciation,
   formatAppreciationRate,
@@ -174,8 +187,13 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
-export default async function GovernmentPage() {
+export default async function GovernmentPage({ searchParams }) {
   await requireGovernmentProfile("/government");
+  const params = await searchParams;
+  const propertySearch = typeof params?.property_q === "string" ? params.property_q.trim() : "";
+  const propertyTypeFilter = typeof params?.property_type === "string" ? params.property_type : "";
+  const propertyDistrictFilter = typeof params?.property_district === "string" ? params.property_district : "";
+  const propertyStatusFilter = typeof params?.property_status === "string" ? params.property_status : "";
   const supabase = await createSupabaseServerClient();
   const serviceSupabase = getSupabaseServiceClient();
 
@@ -194,9 +212,9 @@ export default async function GovernmentPage() {
 
   const { data: propertyRowsData } = await supabase
     .from("properties")
-    .select("id, name, address, district_id, type, size_blocks, land_area_blocks, building_area_blocks, current_value, parent_property_id, districts(name, base_appreciation_rate)")
+    .select("id, name, slug, address, district_id, type, status, size_blocks, land_area_blocks, building_area_blocks, current_value, parent_property_id, districts(name, base_appreciation_rate)")
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(80);
 
   const { data: parentPropertiesData } = await supabase
     .from("properties")
@@ -298,6 +316,19 @@ export default async function GovernmentPage() {
   const properties = asArray(propertiesData);
   const propertyOwners = asArray(propertyOwnersData);
   const propertyRows = asArray(propertyRowsData);
+  const filteredPropertyRows = propertyRows.filter((property) => {
+    const searchNeedle = propertySearch.toLowerCase();
+    const matchesSearch =
+      !searchNeedle ||
+      [property.name, property.address, property.slug, property.districts?.name]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(searchNeedle));
+    const matchesType = !propertyTypeFilter || property.type === propertyTypeFilter;
+    const matchesDistrict = !propertyDistrictFilter || property.district_id === propertyDistrictFilter;
+    const matchesStatus = !propertyStatusFilter || property.status === propertyStatusFilter;
+
+    return matchesSearch && matchesType && matchesDistrict && matchesStatus;
+  });
   const parentProperties = asArray(parentPropertiesData);
   const seizureProperties = asArray(seizurePropertiesData);
   const unownedLands = asArray(unownedLandsData).filter((land) => !asArray(land.property_owners).length);
@@ -379,7 +410,35 @@ export default async function GovernmentPage() {
     description: district.description || "Sin descripcion"
   }));
 
-  const propertyTableRows = propertyRows.map((property) => ({
+  const propertyTypeOptions = [
+    { label: "Todos los tipos", value: "" },
+    { label: "Terreno", value: "land" },
+    { label: "Habitacional", value: "residential" },
+    { label: "Local", value: "commercial" },
+    { label: "Corporativo", value: "corporate" },
+    { label: "Cultural", value: "cultural" },
+    { label: "Entretenimiento", value: "entertainment" },
+    { label: "Infraestructura", value: "infrastructure" },
+    { label: "Servicio", value: "service" },
+    { label: "Publica", value: "public" }
+  ];
+  const propertyStatusOptions = [
+    { label: "Todos los estados", value: "" },
+    { label: "Planeada", value: "planned" },
+    { label: "Activa", value: "active" },
+    { label: "En revision", value: "under_review" },
+    { label: "Demolida", value: "demolished" },
+    { label: "Archivada", value: "archived" }
+  ];
+  const propertyDistrictOptions = [
+    { label: "Todas las delegaciones", value: "" },
+    ...districts.map((district) => ({
+      label: district.name,
+      value: district.id
+    }))
+  ];
+
+  const propertyTableRows = filteredPropertyRows.map((property) => ({
     id: property.id,
     name: (
       <div className={styles.districtName}>
@@ -389,14 +448,46 @@ export default async function GovernmentPage() {
     ),
     district: property.districts?.name || "Sin delegacion",
     type: <Badge tone="info">{formatPropertyType(property.type)}</Badge>,
+    status: <Badge tone={getStatusTone(property.status)}>{formatPropertyStatus(property.status)}</Badge>,
     kind: (
       <Badge tone={property.parent_property_id ? "warning" : "success"}>
         {property.parent_property_id ? "Unidad privativa" : "Matriz"}
       </Badge>
     ),
     parent: property.parent_property_id ? propertyNameById.get(property.parent_property_id) || "Matriz no disponible" : "No aplica",
-    size: Number(property.size_blocks).toLocaleString("es-MX"),
-    value: formatMoney(property.current_value)
+    size: (
+      <div className={styles.districtName}>
+        <span>Terreno: {Number(property.land_area_blocks || property.size_blocks || 0).toLocaleString("es-MX")}</span>
+        <span>Construccion: {Number(property.building_area_blocks || 0).toLocaleString("es-MX")}</span>
+      </div>
+    ),
+    value: formatMoney(property.current_value),
+    actions: (
+      <CrudActionList
+        actions={[
+          {
+            href: `/properties/${property.slug}`,
+            icon: Eye,
+            key: `${property.id}-detail`,
+            label: "Detalle"
+          },
+          {
+            href: `/government?property_q=${encodeURIComponent(property.name)}#property-valuation`,
+            icon: Wrench,
+            key: `${property.id}-valuation`,
+            label: "Valorar"
+          },
+          {
+            href: `/government?property_q=${encodeURIComponent(property.name)}#property-seizure`,
+            icon: ShieldAlert,
+            key: `${property.id}-seizure`,
+            label: "Decomisar",
+            variant: "secondary"
+          }
+        ]}
+        aria-label={`Acciones de gobierno para ${property.name}`}
+      />
+    )
   }));
 
   const unownedLandRows = unownedLands.map((land) => ({
@@ -673,19 +764,137 @@ export default async function GovernmentPage() {
         </Card>
       </section>
 
-      <Card className={styles.card}>
+      <CrudLayout>
         <SectionHeader
-          eyebrow="Propiedades"
-          title="Nueva propiedad"
-          description="El registro crea propiedad, propietario inicial y valoracion inicial en una sola operacion."
+          eyebrow="CRUD centralizado"
+          title="Consola de propiedades"
+          description="Gobierno registra, consulta, valora y decomisa propiedades desde un solo lugar operativo. La eliminacion queda reservada al administrador global."
         />
-        <PropertyForm
-          districts={districtsForForms}
-          organizations={organizations}
-          parentProperties={parentProperties}
-          profiles={profiles}
+        <CrudToolbar
+          actions={
+            <CrudActionList
+              actions={[
+                {
+                  href: "#property-create",
+                  icon: Building2,
+                  key: "create",
+                  label: "Nueva propiedad"
+                },
+                {
+                  href: "#property-valuation",
+                  icon: Wrench,
+                  key: "valuation",
+                  label: "Valorar"
+                },
+                {
+                  href: "#property-seizure",
+                  icon: ShieldAlert,
+                  key: "seizure",
+                  label: "Decomisar"
+                }
+              ]}
+            />
+          }
+          filters={[
+            {
+              defaultValue: propertyTypeFilter,
+              label: "Tipo",
+              name: "property_type",
+              options: propertyTypeOptions
+            },
+            {
+              defaultValue: propertyDistrictFilter,
+              label: "Delegacion",
+              name: "property_district",
+              options: propertyDistrictOptions
+            },
+            {
+              defaultValue: propertyStatusFilter,
+              label: "Estado",
+              name: "property_status",
+              options: propertyStatusOptions
+            }
+          ]}
+          searchDefaultValue={propertySearch}
+          searchLabel="Buscar propiedad"
+          searchName="property_q"
+          searchPlaceholder="Nombre, direccion, slug o delegacion"
         />
-      </Card>
+        <CrudWorkspace
+          sidebar={
+            <>
+              <CrudPanel title="Nueva propiedad">
+                <div id="property-create" className={styles.anchorTarget}>
+                  <SectionHeader
+                    eyebrow="Alta"
+                    title="Registro auditable"
+                    description="Crea propiedad, propietarios iniciales y valoracion inicial en una sola operacion."
+                  />
+                  <PropertyForm
+                    districts={districtsForForms}
+                    organizations={organizations}
+                    parentProperties={parentProperties}
+                    profiles={profiles}
+                  />
+                </div>
+              </CrudPanel>
+
+              <CrudPanel title="Valoracion">
+                <div id="property-valuation" className={styles.anchorTarget}>
+                  <SectionHeader
+                    eyebrow="Ajuste"
+                    title="Nueva valoracion"
+                    description="Registra un cambio de valor con historial, razon y actualizacion del valor vigente."
+                  />
+                  <ValuationForm properties={propertyRowsForValuation} />
+                </div>
+              </CrudPanel>
+
+              <CrudPanel title="Decomiso">
+                <div id="property-seizure" className={styles.anchorTarget}>
+                  <SectionHeader
+                    eyebrow="Control"
+                    title="Decomisar propiedad"
+                    description="Transfiere una propiedad al gobierno con razon documentada y notificaciones a propietarios previos."
+                  />
+                  <SeizureForm properties={seizureProperties} />
+                </div>
+              </CrudPanel>
+            </>
+          }
+        >
+          <Card className={styles.card}>
+            <SectionHeader
+              eyebrow="Registro inmobiliario"
+              title="Propiedades operables por gobierno"
+              description={`${filteredPropertyRows.length.toLocaleString("es-MX")} de ${propertyRows.length.toLocaleString("es-MX")} propiedades segun filtros activos.`}
+            />
+            {propertyTableRows.length ? (
+              <Table
+                columns={[
+                  { key: "name", label: "Propiedad" },
+                  { key: "district", label: "Delegacion" },
+                  { key: "type", label: "Tipo" },
+                  { key: "status", label: "Estado" },
+                  { key: "kind", label: "Registro" },
+                  { key: "parent", label: "Matriz" },
+                  { key: "size", label: "Area" },
+                  { key: "value", label: "Valor" },
+                  { key: "actions", label: "Acciones" }
+                ]}
+                getRowKey={(row) => row.id}
+                rows={propertyTableRows}
+              />
+            ) : (
+              <EmptyState
+                description="No hay propiedades que coincidan con los filtros activos."
+                icon={Building2}
+                title="Sin resultados"
+              />
+            )}
+          </Card>
+        </CrudWorkspace>
+      </CrudLayout>
 
       <Card className={styles.card}>
         <SectionHeader
@@ -694,15 +903,6 @@ export default async function GovernmentPage() {
           description="Alta de terrenos sin propietario administrados por el gobierno para reservar, vender o subastar."
         />
         <UnownedLandForm districts={districts} />
-      </Card>
-
-      <Card className={styles.card}>
-        <SectionHeader
-          eyebrow="Valoracion"
-          title="Nueva valoracion"
-          description="Cada ajuste crea un registro historico y actualiza el valor vigente de la propiedad."
-        />
-        <ValuationForm properties={propertyRowsForValuation} />
       </Card>
 
       <Card className={styles.card}>
@@ -730,15 +930,6 @@ export default async function GovernmentPage() {
           description="El gobierno puede multar jugadores u organizaciones. Si hay saldo suficiente, se cobra y se transfiere al gobierno; si no, queda como adeudo."
         />
         <FineForm organizations={fineTargetOrganizations} profiles={profiles} />
-      </Card>
-
-      <Card className={styles.card}>
-        <SectionHeader
-          eyebrow="Decomisos"
-          title="Decomisar propiedad"
-          description="Transfiere una propiedad al gobierno con razon documentada, notificaciones a propietarios previos y auditoria."
-        />
-        <SeizureForm properties={seizureProperties} />
       </Card>
 
       <Card className={styles.card}>
@@ -809,35 +1000,6 @@ export default async function GovernmentPage() {
             description="Cuando se registren permisos, multas, decomisos, tierras, valoraciones o pagos, apareceran aqui."
             icon={History}
             title="Sin acciones auditadas"
-          />
-        )}
-      </Card>
-
-      <Card className={styles.card}>
-        <SectionHeader
-          eyebrow="Registro inmobiliario"
-          title="Propiedades recientes"
-          description="Listado administrativo de las ultimas propiedades registradas."
-        />
-        {propertyRows.length ? (
-          <Table
-            columns={[
-              { key: "name", label: "Propiedad" },
-              { key: "district", label: "Delegacion" },
-              { key: "type", label: "Tipo" },
-              { key: "kind", label: "Registro" },
-              { key: "parent", label: "Matriz" },
-              { key: "size", label: "Bloques" },
-              { key: "value", label: "Valor" }
-            ]}
-            getRowKey={(row) => row.id}
-            rows={propertyTableRows}
-          />
-        ) : (
-          <EmptyState
-            description="Cuando registres propiedades, apareceran aqui con su delegacion, tipo y valor actual."
-            icon={Building2}
-            title="Sin propiedades registradas"
           />
         )}
       </Card>
