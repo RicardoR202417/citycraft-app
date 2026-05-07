@@ -11,6 +11,11 @@
   gap: 18px;
 }
 
+.gridSingle {
+  display: grid;
+  gap: 18px;
+}
+
 .card {
   padding: clamp(18px, 3vw, 26px);
 }

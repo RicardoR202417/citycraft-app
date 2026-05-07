@@ -194,6 +194,7 @@ export default async function GovernmentPage({ searchParams }) {
   const propertyTypeFilter = typeof params?.property_type === "string" ? params.property_type : "";
   const propertyDistrictFilter = typeof params?.property_district === "string" ? params.property_district : "";
   const propertyStatusFilter = typeof params?.property_status === "string" ? params.property_status : "";
+  const propertyValueFilter = typeof params?.property_value === "string" ? params.property_value : "";
   const supabase = await createSupabaseServerClient();
   const serviceSupabase = getSupabaseServiceClient();
 
@@ -326,8 +327,14 @@ export default async function GovernmentPage({ searchParams }) {
     const matchesType = !propertyTypeFilter || property.type === propertyTypeFilter;
     const matchesDistrict = !propertyDistrictFilter || property.district_id === propertyDistrictFilter;
     const matchesStatus = !propertyStatusFilter || property.status === propertyStatusFilter;
+    const value = Number(property.current_value || 0);
+    const matchesValue =
+      !propertyValueFilter ||
+      (propertyValueFilter === "under_100k" && value < 100000) ||
+      (propertyValueFilter === "100k_1m" && value >= 100000 && value < 1000000) ||
+      (propertyValueFilter === "over_1m" && value >= 1000000);
 
-    return matchesSearch && matchesType && matchesDistrict && matchesStatus;
+    return matchesSearch && matchesType && matchesDistrict && matchesStatus && matchesValue;
   });
   const parentProperties = asArray(parentPropertiesData);
   const seizureProperties = asArray(seizurePropertiesData);
@@ -393,23 +400,6 @@ export default async function GovernmentPage({ searchParams }) {
     return counts;
   }, {});
 
-  const rows = districts.map((district) => ({
-    id: district.id,
-    name: (
-      <div className={styles.districtName}>
-        <strong>{district.name}</strong>
-        <span>{district.slug}</span>
-      </div>
-    ),
-    appreciation: formatRate(district.base_appreciation_rate),
-    properties: (
-      <Badge tone={propertyCountByDistrict[district.id] ? "info" : "neutral"}>
-        {propertyCountByDistrict[district.id] || 0}
-      </Badge>
-    ),
-    description: district.description || "Sin descripcion"
-  }));
-
   const propertyTypeOptions = [
     { label: "Todos los tipos", value: "" },
     { label: "Terreno", value: "land" },
@@ -437,6 +427,37 @@ export default async function GovernmentPage({ searchParams }) {
       value: district.id
     }))
   ];
+  const propertyValueOptions = [
+    { label: "Todos los valores", value: "" },
+    { label: "Menos de CC$100k", value: "under_100k" },
+    { label: "CC$100k a CC$1M", value: "100k_1m" },
+    { label: "CC$1M o mas", value: "over_1m" }
+  ];
+  const districtRows = districts.map((district) => {
+    const districtProperties = properties.filter((property) => property.district_id === district.id);
+    const propertyTypes = new Set(districtProperties.map((property) => formatPropertyType(property.type)));
+    const totalValue = districtProperties.reduce((total, property) => total + Number(property.current_value || 0), 0);
+    const appreciationMetrics = districtAppreciationById.get(district.id);
+
+    return {
+      id: district.id,
+      name: (
+        <div className={styles.districtName}>
+          <strong>{district.name}</strong>
+          <span>{district.slug}</span>
+        </div>
+      ),
+      appreciation: formatRate(appreciationMetrics?.currentRate ?? district.base_appreciation_rate),
+      properties: (
+        <Badge tone={propertyCountByDistrict[district.id] ? "info" : "neutral"}>
+          {propertyCountByDistrict[district.id] || 0}
+        </Badge>
+      ),
+      types: propertyTypes.size ? Array.from(propertyTypes).sort().join(", ") : "Sin propiedades",
+      value: formatMoney(totalValue),
+      description: district.description || "Sin descripcion"
+    };
+  });
 
   const propertyTableRows = filteredPropertyRows.map((property) => ({
     id: property.id,
@@ -703,16 +724,7 @@ export default async function GovernmentPage({ searchParams }) {
         title="Registro territorial"
       />
 
-      <section className={styles.grid}>
-        <Card className={styles.card}>
-          <SectionHeader
-            eyebrow="Delegaciones"
-            title="Nueva delegacion"
-            description="Cada propiedad debe pertenecer a una zona para habilitar reportes y plusvalia futura."
-          />
-          <DistrictForm />
-        </Card>
-
+      <section className={styles.gridSingle}>
         <Card className={styles.card}>
           <SectionHeader
             eyebrow="Resumen"
@@ -775,6 +787,12 @@ export default async function GovernmentPage({ searchParams }) {
             <CrudActionList
               actions={[
                 {
+                  href: "#district-create",
+                  icon: MapPinned,
+                  key: "district",
+                  label: "Nueva delegacion"
+                },
+                {
                   href: "#property-create",
                   icon: Building2,
                   key: "create",
@@ -791,6 +809,12 @@ export default async function GovernmentPage({ searchParams }) {
                   icon: ShieldAlert,
                   key: "seizure",
                   label: "Decomisar"
+                },
+                {
+                  href: "#district-appreciation",
+                  icon: Landmark,
+                  key: "appreciation",
+                  label: "Plusvalia"
                 }
               ]}
             />
@@ -813,6 +837,12 @@ export default async function GovernmentPage({ searchParams }) {
               label: "Estado",
               name: "property_status",
               options: propertyStatusOptions
+            },
+            {
+              defaultValue: propertyValueFilter,
+              label: "Valor",
+              name: "property_value",
+              options: propertyValueOptions
             }
           ]}
           searchDefaultValue={propertySearch}
@@ -823,6 +853,17 @@ export default async function GovernmentPage({ searchParams }) {
         <CrudWorkspace
           sidebar={
             <>
+              <CrudPanel title="Nueva delegacion">
+                <div id="district-create" className={styles.anchorTarget}>
+                  <SectionHeader
+                    eyebrow="Delegaciones"
+                    title="Alta territorial"
+                    description="Cada propiedad debe pertenecer a una zona para habilitar reportes, filtros y plusvalia."
+                  />
+                  <DistrictForm />
+                </div>
+              </CrudPanel>
+
               <CrudPanel title="Nueva propiedad">
                 <div id="property-create" className={styles.anchorTarget}>
                   <SectionHeader
@@ -860,6 +901,17 @@ export default async function GovernmentPage({ searchParams }) {
                   <SeizureForm properties={seizureProperties} />
                 </div>
               </CrudPanel>
+
+              <CrudPanel title="Snapshot de plusvalia">
+                <div id="district-appreciation" className={styles.anchorTarget}>
+                  <SectionHeader
+                    eyebrow="Plusvalia"
+                    title="Registrar indice"
+                    description="Guarda el indice calculado para una delegacion y conserva el historial."
+                  />
+                  <DistrictAppreciationForm districts={districtAppreciationOptions} />
+                </div>
+              </CrudPanel>
             </>
           }
         >
@@ -893,6 +945,34 @@ export default async function GovernmentPage({ searchParams }) {
               />
             )}
           </Card>
+
+          <Card className={styles.card}>
+            <SectionHeader
+              eyebrow="Delegaciones"
+              title="Resumen territorial"
+              description="Cada delegacion muestra cantidad de propiedades, mezcla de tipos, valor total y plusvalia vigente."
+            />
+            {districtRows.length ? (
+              <Table
+                columns={[
+                  { key: "name", label: "Delegacion" },
+                  { key: "appreciation", label: "Plusvalia" },
+                  { key: "properties", label: "Propiedades" },
+                  { key: "types", label: "Tipos" },
+                  { key: "value", label: "Valor total" },
+                  { key: "description", label: "Descripcion" }
+                ]}
+                getRowKey={(row) => row.id}
+                rows={districtRows}
+              />
+            ) : (
+              <EmptyState
+                description="Registra la primera delegacion para empezar a ubicar propiedades."
+                icon={Landmark}
+                title="Sin delegaciones"
+              />
+            )}
+          </Card>
         </CrudWorkspace>
       </CrudLayout>
 
@@ -903,15 +983,6 @@ export default async function GovernmentPage({ searchParams }) {
           description="Alta de terrenos sin propietario administrados por el gobierno para reservar, vender o subastar."
         />
         <UnownedLandForm districts={districts} />
-      </Card>
-
-      <Card className={styles.card}>
-        <SectionHeader
-          eyebrow="Plusvalia"
-          title="Registrar snapshot de delegacion"
-          description="Guarda el indice actual calculado para una delegacion y conserva el indice anterior, nuevo indice, razon y factores."
-        />
-        <DistrictAppreciationForm districts={districtAppreciationOptions} />
       </Card>
 
       <Card className={styles.card}>
@@ -930,32 +1001,6 @@ export default async function GovernmentPage({ searchParams }) {
           description="El gobierno puede multar jugadores u organizaciones. Si hay saldo suficiente, se cobra y se transfiere al gobierno; si no, queda como adeudo."
         />
         <FineForm organizations={fineTargetOrganizations} profiles={profiles} />
-      </Card>
-
-      <Card className={styles.card}>
-        <SectionHeader
-          eyebrow="Directorio"
-          title="Delegaciones registradas"
-          description="Listado administrativo con conteo de propiedades por zona."
-        />
-        {districts.length ? (
-          <Table
-            columns={[
-              { key: "name", label: "Delegacion" },
-              { key: "appreciation", label: "Plusvalia base" },
-              { key: "properties", label: "Propiedades" },
-              { key: "description", label: "Descripcion" }
-            ]}
-            getRowKey={(row) => row.id}
-            rows={rows}
-          />
-        ) : (
-          <EmptyState
-            description="Registra la primera delegacion para empezar a ubicar propiedades."
-            icon={Landmark}
-            title="Sin delegaciones"
-          />
-        )}
       </Card>
 
       <Card className={styles.card}>

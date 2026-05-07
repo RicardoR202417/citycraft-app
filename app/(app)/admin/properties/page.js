@@ -99,6 +99,7 @@ export default async function AdminPropertiesPage({ searchParams }) {
   const propertyTypeFilter = typeof params?.admin_property_type === "string" ? params.admin_property_type : "";
   const propertyDistrictFilter = typeof params?.admin_property_district === "string" ? params.admin_property_district : "";
   const propertyStatusFilter = typeof params?.admin_property_status === "string" ? params.admin_property_status : "";
+  const propertyValueFilter = typeof params?.admin_property_value === "string" ? params.admin_property_value : "";
   const selectedPropertyId = typeof params?.admin_property_id === "string" ? params.admin_property_id : "";
   const serviceSupabase = getSupabaseServiceClient();
 
@@ -159,8 +160,14 @@ export default async function AdminPropertiesPage({ searchParams }) {
     const matchesType = !propertyTypeFilter || property.type === propertyTypeFilter;
     const matchesDistrict = !propertyDistrictFilter || property.district_id === propertyDistrictFilter;
     const matchesStatus = !propertyStatusFilter || property.status === propertyStatusFilter;
+    const value = Number(property.current_value || 0);
+    const matchesValue =
+      !propertyValueFilter ||
+      (propertyValueFilter === "under_100k" && value < 100000) ||
+      (propertyValueFilter === "100k_1m" && value >= 100000 && value < 1000000) ||
+      (propertyValueFilter === "over_1m" && value >= 1000000);
 
-    return matchesSearch && matchesType && matchesDistrict && matchesStatus;
+    return matchesSearch && matchesType && matchesDistrict && matchesStatus && matchesValue;
   });
   const selectedProperty =
     properties.find((property) => property.id === selectedPropertyId) ||
@@ -202,6 +209,12 @@ export default async function AdminPropertiesPage({ searchParams }) {
       label: district.name,
       value: district.id
     }))
+  ];
+  const propertyValueOptions = [
+    { label: "Todos los valores", value: "" },
+    { label: "Menos de CC$100k", value: "under_100k" },
+    { label: "CC$100k a CC$1M", value: "100k_1m" },
+    { label: "CC$1M o mas", value: "over_1m" }
   ];
   const selectedOwners = selectedProperty ? ownersByProperty.get(selectedProperty.id) || [] : [];
   const selectedValuations = selectedProperty ? (valuationsByProperty.get(selectedProperty.id) || []).slice(0, 5) : [];
@@ -292,6 +305,19 @@ export default async function AdminPropertiesPage({ searchParams }) {
     actor: valuation.profiles?.gamertag || "Sistema",
     createdAt: formatDate(valuation.created_at)
   }));
+  const districtRows = districts.map((district) => {
+    const districtProperties = properties.filter((property) => property.district_id === district.id);
+    const propertyTypes = new Set(districtProperties.map((property) => formatPropertyType(property.type)));
+    const totalValue = districtProperties.reduce((total, property) => total + Number(property.current_value || 0), 0);
+
+    return {
+      id: district.id,
+      district: district.name,
+      properties: districtProperties.length.toLocaleString("es-MX"),
+      types: propertyTypes.size ? Array.from(propertyTypes).sort().join(", ") : "Sin propiedades",
+      value: formatMoney(totalValue)
+    };
+  });
 
   return (
     <main className={styles.page}>
@@ -347,6 +373,12 @@ export default async function AdminPropertiesPage({ searchParams }) {
               label: "Estado",
               name: "admin_property_status",
               options: propertyStatusOptions
+            },
+            {
+              defaultValue: propertyValueFilter,
+              label: "Valor",
+              name: "admin_property_value",
+              options: propertyValueOptions
             }
           ]}
           searchDefaultValue={propertySearch}
@@ -426,6 +458,32 @@ export default async function AdminPropertiesPage({ searchParams }) {
                   description="No hay propiedades que coincidan con los filtros activos."
                   icon={MapPinned}
                   title="Sin resultados"
+                />
+              )}
+            </Card>
+
+            <Card className={styles.propertyCard}>
+              <SectionHeader
+                eyebrow="Delegaciones"
+                title="Resumen territorial"
+                description="Lectura administrativa de propiedades agrupadas por delegacion."
+              />
+              {districtRows.length ? (
+                <Table
+                  columns={[
+                    { key: "district", label: "Delegacion" },
+                    { key: "properties", label: "Propiedades" },
+                    { key: "types", label: "Tipos" },
+                    { key: "value", label: "Valor total" }
+                  ]}
+                  getRowKey={(row) => row.id}
+                  rows={districtRows}
+                />
+              ) : (
+                <EmptyState
+                  description="Aun no hay delegaciones registradas."
+                  icon={MapPinned}
+                  title="Sin delegaciones"
                 />
               )}
             </Card>
