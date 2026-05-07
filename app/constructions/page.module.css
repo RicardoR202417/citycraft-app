@@ -166,6 +166,20 @@
   padding-top: 10px;
 }
 
+.detailLink {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0 12px;
+  background: var(--surface-subtle);
+  color: var(--accent-strong);
+  font-weight: 800;
+  text-decoration: none;
+}
+
 .emptyCard {
   padding: 28px;
 }

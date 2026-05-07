@@ -1,0 +1,58 @@
+.form {
+  display: grid;
+  gap: 12px;
+}
+
+.form label {
+  display: grid;
+  gap: 8px;
+  color: var(--foreground);
+  font-weight: 800;
+}
+
+.form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: var(--surface);
+  color: var(--foreground);
+  font: inherit;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.error,
+.message {
+  margin: 0;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-weight: 800;
+}
+
+.error {
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--line));
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+  color: var(--danger);
+}
+
+.message {
+  border: 1px solid color-mix(in srgb, var(--success) 40%, var(--line));
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
+  color: var(--success);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .actions {
+    justify-content: stretch;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}

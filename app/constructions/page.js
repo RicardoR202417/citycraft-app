@@ -109,6 +109,10 @@ export default async function PublicConstructionsPage({ searchParams }) {
                   </div>
 
                   {post.property_name ? <small>{post.property_name}</small> : null}
+
+                  <Link className={styles.detailLink} href={`/constructions/${post.slug}`}>
+                    Ver detalle y comentarios
+                  </Link>
                 </div>
               </article>
             ))}

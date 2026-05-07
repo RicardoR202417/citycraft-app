@@ -275,6 +275,33 @@ Reglas:
   servidor solo despues de leer el registro publico.
 - Las publicaciones privadas o futuras no aparecen en el feed anonimo.
 
+### Comentarios de construcciones
+
+Archivo:
+
+```text
+supabase/migrations/20260430410000_construction_post_comments.sql
+```
+
+Incluye:
+
+- Tabla `construction_post_comments`.
+- Vista `public_construction_post_comments`.
+- RPC `create_construction_post_comment`.
+- RPC `delete_construction_post_comment`.
+- Auditoria `construction.comment_created` y `construction.comment_deleted`.
+
+Reglas:
+
+- Los visitantes pueden leer comentarios no eliminados de publicaciones
+  publicas visibles.
+- Solo jugadores autenticados pueden comentar.
+- El comentario debe pertenecer a una publicacion visible para el jugador.
+- El borrado comun es logico: `is_deleted`, `deleted_at`, `deleted_by`.
+- El autor del comentario puede borrar su propio comentario.
+- El autor de la publicacion puede moderar comentarios de su publicacion.
+- Gobierno y administrador global conservan permiso de moderacion por RPC/RLS.
+
 ## Mercado y ventas
 
 Archivo:
