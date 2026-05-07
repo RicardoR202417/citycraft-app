@@ -1,10 +1,12 @@
 "use client";
 
 import { Building2 } from "lucide-react";
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { ActionFeedback, Button } from "../../../components/ui";
+import { calculateSuggestedPropertyValue } from "../../../lib/propertyValuation";
 import { createProperty } from "./actions";
 import styles from "./PropertyForm.module.css";
+import { ValuationPreview } from "./ValuationPreview";
 
 const PROPERTY_TYPES = [
   ["land", "Terreno"],
@@ -23,6 +25,25 @@ export function PropertyForm({ districts, organizations, parentProperties, profi
     error: "",
     message: ""
   });
+  const [districtId, setDistrictId] = useState("");
+  const [type, setType] = useState("land");
+  const [landAreaBlocks, setLandAreaBlocks] = useState("");
+  const [buildingAreaBlocks, setBuildingAreaBlocks] = useState("");
+  const [currentValue, setCurrentValue] = useState("");
+  const selectedDistrict = districts.find((district) => district.id === districtId);
+  const districtAppreciationRate = Number(
+    selectedDistrict?.current_appreciation_rate ?? selectedDistrict?.base_appreciation_rate ?? 0
+  );
+  const suggested = useMemo(
+    () =>
+      calculateSuggestedPropertyValue({
+        buildingAreaBlocks,
+        districtAppreciationRate,
+        landAreaBlocks,
+        type
+      }),
+    [buildingAreaBlocks, districtAppreciationRate, landAreaBlocks, type]
+  );
 
   return (
     <form action={formAction} className={styles.form}>
@@ -64,7 +85,13 @@ export function PropertyForm({ districts, organizations, parentProperties, profi
       <div className={styles.grid}>
         <label>
           Delegacion
-          <select disabled={!districts.length} name="district_id" required>
+          <select
+            disabled={!districts.length}
+            name="district_id"
+            onChange={(event) => setDistrictId(event.target.value)}
+            required
+            value={districtId}
+          >
             <option value="">Seleccionar</option>
             {districts.map((district) => (
               <option key={district.id} value={district.id}>
@@ -76,7 +103,7 @@ export function PropertyForm({ districts, organizations, parentProperties, profi
 
         <label>
           Tipo
-          <select name="type" required>
+          <select name="type" onChange={(event) => setType(event.target.value)} required value={type}>
             {PROPERTY_TYPES.map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -88,15 +115,59 @@ export function PropertyForm({ districts, organizations, parentProperties, profi
 
       <div className={styles.grid}>
         <label>
-          Tamano en bloques
-          <input min="0.01" name="size_blocks" required step="0.01" type="number" />
+          Area de terreno
+          <input
+            min="0.01"
+            name="land_area_blocks"
+            onChange={(event) => setLandAreaBlocks(event.target.value)}
+            required
+            step="0.01"
+            type="number"
+            value={landAreaBlocks}
+          />
         </label>
 
         <label>
-          Valor inicial
-          <input min="0" name="current_value" required step="0.01" type="number" />
+          Construccion inicial
+          <input
+            min="0"
+            name="building_area_blocks"
+            onChange={(event) => setBuildingAreaBlocks(event.target.value)}
+            step="0.01"
+            type="number"
+            value={buildingAreaBlocks}
+          />
         </label>
       </div>
+
+      <div className={styles.grid}>
+        <label>
+          Valor inicial
+          <input
+            min="0"
+            name="current_value"
+            onChange={(event) => setCurrentValue(event.target.value)}
+            required
+            step="0.01"
+            type="number"
+            value={currentValue}
+          />
+        </label>
+
+        <div className={styles.suggestionAction}>
+          <span>Vista previa</span>
+          <button type="button" onClick={() => setCurrentValue(String(suggested.suggestedValue))}>
+            Usar valor sugerido
+          </button>
+        </div>
+      </div>
+
+      <ValuationPreview
+        buildingAreaBlocks={buildingAreaBlocks}
+        districtAppreciationRate={districtAppreciationRate}
+        landAreaBlocks={landAreaBlocks}
+        type={type}
+      />
 
       <div className={styles.grid}>
         <label>
@@ -131,7 +202,7 @@ export function PropertyForm({ districts, organizations, parentProperties, profi
 
       <label>
         Razon de valoracion
-        <input defaultValue="Valor inicial" maxLength={240} name="valuation_reason" required type="text" />
+        <input defaultValue="Valor sugerido aceptado" maxLength={240} name="valuation_reason" required type="text" />
       </label>
 
       <label>

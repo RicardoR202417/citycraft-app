@@ -1,0 +1,28 @@
+.preview {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent),
+    var(--surface-subtle);
+  padding: 16px;
+}
+
+.header {
+  display: grid;
+  gap: 8px;
+}
+
+.header span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.header strong {
+  color: var(--accent-strong);
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  line-height: 1;
+}

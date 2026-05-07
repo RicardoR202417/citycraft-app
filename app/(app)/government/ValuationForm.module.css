@@ -34,22 +34,21 @@
   outline: 0;
 }
 
-.error,
-.message {
-  margin: 0;
+.suggestionButton {
+  min-height: 42px;
+  width: fit-content;
+  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  padding: 12px;
-  line-height: 1.45;
+  background: var(--surface-subtle);
+  color: var(--accent-strong);
+  cursor: pointer;
+  font-weight: 850;
+  padding: 0 14px;
 }
 
-.error {
-  background: color-mix(in srgb, var(--danger) 14%, transparent);
-  color: var(--danger);
-}
-
-.message {
-  background: color-mix(in srgb, var(--success) 14%, transparent);
-  color: var(--success);
+.suggestionButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .actions {
@@ -67,6 +66,10 @@
   }
 
   .actions button {
+    width: 100%;
+  }
+
+  .suggestionButton {
     width: 100%;
   }
 }

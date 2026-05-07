@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { calculateDistrictAppreciation } from "../../../lib/appreciation";
 import { requireGovernmentProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
+import { calculateSuggestedPropertyValue } from "../../../lib/propertyValuation";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 
 const DEFAULT_STATE = {
@@ -363,7 +364,7 @@ export async function createDistrict(_previousState = DEFAULT_STATE, formData) {
 }
 
 export async function createProperty(_previousState = DEFAULT_STATE, formData) {
-  await requireGovernmentProfile("/government");
+  const actorProfile = await requireGovernmentProfile("/government");
   const districtId = getField(formData, "district_id");
   const parentPropertyId = getField(formData, "parent_property_id");
   const name = getField(formData, "name");
@@ -374,7 +375,9 @@ export async function createProperty(_previousState = DEFAULT_STATE, formData) {
   const ownerProfileId = getField(formData, "owner_profile_id");
   const ownerOrganizationId = getField(formData, "owner_organization_id");
   const ownerType = ownerProfileId ? "profile" : "organization";
-  const sizeBlocks = Number(getField(formData, "size_blocks"));
+  const landAreaBlocks = Number(getField(formData, "land_area_blocks"));
+  const buildingAreaBlocks = Number(getField(formData, "building_area_blocks") || 0);
+  const sizeBlocks = landAreaBlocks;
   const currentValue = Number(getField(formData, "current_value"));
   const ownershipPercent = Number(getField(formData, "ownership_percent") || 100);
   const valuationReason = getField(formData, "valuation_reason") || "Valor inicial";
@@ -426,9 +429,16 @@ export async function createProperty(_previousState = DEFAULT_STATE, formData) {
     };
   }
 
-  if (!Number.isFinite(sizeBlocks) || sizeBlocks <= 0) {
+  if (!Number.isFinite(landAreaBlocks) || landAreaBlocks <= 0) {
     return {
-      error: "El tamano debe ser mayor a 0 bloques.",
+      error: "El area de terreno debe ser mayor a 0 bloques.",
+      message: ""
+    };
+  }
+
+  if (!Number.isFinite(buildingAreaBlocks) || buildingAreaBlocks < 0) {
+    return {
+      error: "El area construida inicial no puede ser negativa.",
       message: ""
     };
   }
@@ -455,7 +465,34 @@ export async function createProperty(_previousState = DEFAULT_STATE, formData) {
   }
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.rpc("create_property_with_initial_owner", {
+  const { data: district } = await supabase
+    .from("districts")
+    .select("id, base_appreciation_rate")
+    .eq("id", districtId)
+    .maybeSingle();
+  const { data: latestAppreciation } = await supabase
+    .from("district_appreciation_history")
+    .select("new_index")
+    .eq("district_id", districtId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const suggested = calculateSuggestedPropertyValue({
+    buildingAreaBlocks,
+    districtAppreciationRate: latestAppreciation?.new_index ?? district?.base_appreciation_rate ?? 0,
+    landAreaBlocks,
+    type
+  });
+  const manualAdjustment = Math.abs(currentValue - suggested.suggestedValue) > 0.01;
+
+  if (manualAdjustment && valuationReason.toLowerCase() === "valor sugerido aceptado") {
+    return {
+      error: "Si ajustas el valor sugerido, escribe una razon especifica.",
+      message: ""
+    };
+  }
+
+  const { data: createdPropertyId, error } = await supabase.rpc("create_property_with_initial_owner", {
     p_address: address,
     p_current_value: currentValue,
     p_description: description || "",
@@ -477,6 +514,25 @@ export async function createProperty(_previousState = DEFAULT_STATE, formData) {
       error: friendlyPropertyError(error),
       message: ""
     };
+  }
+
+  if (createdPropertyId) {
+    await supabase
+      .from("properties")
+      .update({
+        land_area_blocks: landAreaBlocks
+      })
+      .eq("id", createdPropertyId);
+
+    if (buildingAreaBlocks > 0) {
+      await supabase.from("property_floors").insert({
+        area_blocks: buildingAreaBlocks,
+        created_by: actorProfile.id,
+        floor_number: 1,
+        name: "Planta 1",
+        property_id: createdPropertyId
+      });
+    }
   }
 
   revalidateGovernmentPaths();
@@ -515,8 +571,32 @@ export async function recordPropertyValuation(_previousState = DEFAULT_STATE, fo
   }
 
   const supabase = await createSupabaseServerClient();
+  const { data: property } = await supabase
+    .from("properties")
+    .select("id, type, size_blocks, land_area_blocks, building_area_blocks, districts(id, base_appreciation_rate)")
+    .eq("id", propertyId)
+    .maybeSingle();
+  const { data: latestAppreciation } = property?.districts?.id
+    ? await supabase
+        .from("district_appreciation_history")
+        .select("new_index")
+        .eq("district_id", property.districts.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+  const suggested = calculateSuggestedPropertyValue({
+    buildingAreaBlocks: property?.building_area_blocks || 0,
+    districtAppreciationRate: latestAppreciation?.new_index ?? property?.districts?.base_appreciation_rate ?? 0,
+    landAreaBlocks: property?.land_area_blocks || property?.size_blocks || 0,
+    type: property?.type || "land"
+  });
   const { error } = await supabase.rpc("record_property_valuation", {
-    p_metadata: {},
+    p_metadata: {
+      manual_adjustment: Math.abs(value - suggested.suggestedValue) > 0.01,
+      suggested_value: suggested.suggestedValue,
+      valuation_breakdown: suggested
+    },
     p_property_id: propertyId,
     p_reason: reason,
     p_value: value

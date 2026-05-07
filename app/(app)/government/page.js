@@ -186,7 +186,7 @@ export default async function GovernmentPage() {
 
   const { data: propertiesData } = await supabase
     .from("properties")
-    .select("id, name, district_id, parent_property_id, type, status, size_blocks, current_value, created_at, updated_at");
+    .select("id, name, district_id, parent_property_id, type, status, size_blocks, land_area_blocks, building_area_blocks, current_value, created_at, updated_at");
 
   const { data: propertyOwnersData } = await serviceSupabase
     .from("property_owners")
@@ -194,7 +194,7 @@ export default async function GovernmentPage() {
 
   const { data: propertyRowsData } = await supabase
     .from("properties")
-    .select("id, name, address, type, size_blocks, current_value, parent_property_id, districts(name)")
+    .select("id, name, address, district_id, type, size_blocks, land_area_blocks, building_area_blocks, current_value, parent_property_id, districts(name, base_appreciation_rate)")
     .order("created_at", { ascending: false })
     .limit(20);
 
@@ -342,6 +342,20 @@ export default async function GovernmentPage() {
       })
     ])
   );
+  const districtsForForms = districts.map((district) => ({
+    ...district,
+    current_appreciation_rate: districtAppreciationById.get(district.id)?.currentRate ?? district.base_appreciation_rate
+  }));
+  const propertyRowsForValuation = propertyRows.map((property) => ({
+    ...property,
+    districts: {
+      ...property.districts,
+      current_appreciation_rate:
+        districtAppreciationById.get(property.district_id)?.currentRate ??
+        property.districts?.base_appreciation_rate ??
+        0
+    }
+  }));
 
   const propertyCountByDistrict = properties.reduce((counts, property) => {
     counts[property.district_id] = (counts[property.district_id] || 0) + 1;
@@ -666,7 +680,7 @@ export default async function GovernmentPage() {
           description="El registro crea propiedad, propietario inicial y valoracion inicial en una sola operacion."
         />
         <PropertyForm
-          districts={districts}
+          districts={districtsForForms}
           organizations={organizations}
           parentProperties={parentProperties}
           profiles={profiles}
@@ -688,7 +702,7 @@ export default async function GovernmentPage() {
           title="Nueva valoracion"
           description="Cada ajuste crea un registro historico y actualiza el valor vigente de la propiedad."
         />
-        <ValuationForm properties={propertyRows} />
+        <ValuationForm properties={propertyRowsForValuation} />
       </Card>
 
       <Card className={styles.card}>

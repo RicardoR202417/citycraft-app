@@ -57,22 +57,25 @@
   line-height: 1.5;
 }
 
-.error,
-.message {
-  margin: 0;
+.suggestionAction {
+  display: grid;
+  gap: 8px;
+  align-content: end;
+}
+
+.suggestionAction span {
+  color: var(--foreground);
+  font-weight: 800;
+}
+
+.suggestionAction button {
+  min-height: 44px;
+  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  padding: 12px;
-  line-height: 1.45;
-}
-
-.error {
-  background: color-mix(in srgb, var(--danger) 14%, transparent);
-  color: var(--danger);
-}
-
-.message {
-  background: color-mix(in srgb, var(--success) 14%, transparent);
-  color: var(--success);
+  background: var(--surface-subtle);
+  color: var(--accent-strong);
+  cursor: pointer;
+  font-weight: 850;
 }
 
 .actions {
