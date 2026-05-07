@@ -113,6 +113,21 @@
   text-decoration: none;
 }
 
+.groupButton {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+}
+
+.groupButton svg:last-child {
+  margin-left: auto;
+  transition: transform 160ms ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
 .navLink:hover,
 .active {
   border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
@@ -121,6 +136,43 @@
 }
 
 .navLink svg {
+  flex: 0 0 auto;
+}
+
+.navGroup {
+  display: grid;
+  gap: 6px;
+}
+
+.submenu {
+  display: grid;
+  gap: 4px;
+  margin-left: 18px;
+  border-left: 1px solid var(--line);
+  padding-left: 10px;
+}
+
+.submenuLink {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.submenuLink:hover {
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--line));
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  color: var(--accent-strong);
+}
+
+.submenuLink svg {
   flex: 0 0 auto;
 }
 

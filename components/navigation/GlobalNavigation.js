@@ -1,7 +1,9 @@
 import {
+  Archive,
   Bell,
   Building2,
   CircleDollarSign,
+  ClipboardCheck,
   Gavel,
   Home,
   Landmark,
@@ -10,6 +12,7 @@ import {
   MapPinned,
   Shield,
   Store,
+  Users,
   UserCircle
 } from "lucide-react";
 import { getCurrentProfile, isGlobalAdmin, isGovernmentMember } from "../../lib/auth";
@@ -43,11 +46,32 @@ export async function GlobalNavigation() {
   ];
 
   if (hasGovernmentAccess) {
-    links.push({ href: "/government", icon: Shield, label: "Gobierno" });
+    links.push({
+      icon: Shield,
+      key: "government",
+      label: "Gobierno",
+      children: [
+        { href: "/government", icon: Shield, label: "Panel gobierno" },
+        { href: "/districts", icon: MapPinned, label: "Delegaciones" },
+        { href: "/properties", icon: Landmark, label: "Propiedades" },
+        { href: "/transparency/government", icon: ClipboardCheck, label: "Transparencia" }
+      ]
+    });
   }
 
   if (hasAdminAccess) {
-    links.push({ href: "/admin", icon: Shield, label: "Admin" });
+    links.push({
+      icon: Shield,
+      key: "admin",
+      label: "Admin",
+      children: [
+        { href: "/admin", icon: Shield, label: "Panel admin" },
+        { href: "/admin/players", icon: Users, label: "Jugadores" },
+        { href: "/admin/properties", icon: Landmark, label: "Propiedades" },
+        { href: "/admin/organizations", icon: CircleDollarSign, label: "Organizaciones" },
+        { href: "/admin/audit", icon: Archive, label: "Auditoria" }
+      ]
+    });
   }
 
   if (!profile) {
