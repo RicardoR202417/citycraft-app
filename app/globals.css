@@ -63,6 +63,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.app-shell {
+  min-height: 100vh;
+  padding-left: 284px;
+}
+
 a {
   color: inherit;
 }
@@ -157,5 +162,12 @@ select {
     --toast-title: #101411;
     --toast-description: #334033;
     --toast-action-bg: rgba(16, 20, 17, 0.08);
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    padding-left: 0;
+    padding-top: 48px;
   }
 }
