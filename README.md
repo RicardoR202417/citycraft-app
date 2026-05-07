@@ -42,6 +42,7 @@ Documentos de trabajo:
 - [`docs/PROJECT_MANAGEMENT.md`](./docs/PROJECT_MANAGEMENT.md): SCRUM, sprints, Definition of Ready y Definition of Done.
 - [`docs/JIRA_BACKLOG.md`](./docs/JIRA_BACKLOG.md): backlog inicial listo para convertirse en issues de Jira.
 - [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md): direccion visual, componentes y buenas practicas de estilos.
+- [`docs/CRUD_PATTERN.md`](./docs/CRUD_PATTERN.md): patron reusable para listados, filtros, detalles, formularios y acciones.
 - [`docs/DATABASE.md`](./docs/DATABASE.md): Supabase, migraciones, RLS y reglas de seguridad.
 - [`docs/ADMINISTRATION.md`](./docs/ADMINISTRATION.md): politicas del administrador global y separacion con gobierno.
 - [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md): flujo Git/Jira, ramas, PRs y convenciones de desarrollo.

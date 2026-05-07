@@ -2,6 +2,7 @@ export { Badge } from "./Badge";
 export { ActionFeedback } from "./ActionFeedback";
 export { Button } from "./Button";
 export { Card } from "./Card";
+export { CrudActionList, CrudLayout, CrudPanel, CrudToolbar, CrudWorkspace } from "./Crud";
 export { DataList } from "./DataList";
 export { EmptyState } from "./EmptyState";
 export { IconButton } from "./IconButton";

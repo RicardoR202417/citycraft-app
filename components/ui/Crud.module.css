@@ -1,0 +1,173 @@
+.layout {
+  display: grid;
+  gap: 18px;
+}
+
+.workspace,
+.workspaceWithSidebar {
+  display: grid;
+  gap: 18px;
+  align-items: start;
+}
+
+.workspaceWithSidebar {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+}
+
+.mainPanel,
+.sidebar {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.filterForm {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr);
+  gap: 12px;
+  align-items: end;
+  width: 100%;
+}
+
+.filterField,
+.searchField {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.filterField span,
+.searchField span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.filterField select,
+.searchField input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--foreground);
+  padding: 0 12px;
+}
+
+.searchField div {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+  padding: 0 10px;
+}
+
+.searchField input {
+  min-height: 38px;
+  border: 0;
+  outline: 0;
+  padding: 0 0 0 8px;
+}
+
+.searchField input:focus {
+  outline: 0;
+}
+
+.filterForm button {
+  width: fit-content;
+}
+
+.toolbarActions,
+.actionList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.toolbarActions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.actionList {
+  align-items: center;
+}
+
+.start {
+  justify-content: flex-start;
+}
+
+.center {
+  justify-content: center;
+}
+
+.end {
+  justify-content: flex-end;
+}
+
+.panel {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.panel h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 1.05rem;
+}
+
+@media (min-width: 780px) {
+  .filterForm {
+    grid-template-columns: minmax(260px, 1fr) repeat(3, minmax(150px, 210px)) auto;
+  }
+}
+
+@media (max-width: 980px) {
+  .workspaceWithSidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .toolbarActions {
+    justify-content: stretch;
+  }
+
+  .toolbarActions a,
+  .toolbarActions button {
+    flex: 1 1 160px;
+  }
+}
+
+@media (max-width: 560px) {
+  .toolbar {
+    padding: 14px;
+  }
+
+  .filterForm button,
+  .actionList a,
+  .actionList button {
+    width: 100%;
+  }
+
+  .actionList {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
