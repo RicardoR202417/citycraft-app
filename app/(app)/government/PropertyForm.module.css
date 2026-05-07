@@ -78,6 +78,98 @@
   font-weight: 850;
 }
 
+.ownersSection {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  padding: 14px;
+}
+
+.ownersHeader {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ownersHeader div {
+  display: grid;
+  gap: 4px;
+}
+
+.ownersHeader strong {
+  color: var(--foreground);
+}
+
+.ownersHeader span,
+.ownershipSummary span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.ownersHeader button,
+.removeOwner {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--accent-strong);
+  cursor: pointer;
+  font-weight: 850;
+  padding: 0 12px;
+}
+
+.ownerRows {
+  display: grid;
+  gap: 10px;
+}
+
+.ownerRow {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.65fr) minmax(180px, 1fr) minmax(120px, 0.45fr) auto;
+  gap: 10px;
+  align-items: end;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 10px;
+}
+
+.removeOwner {
+  width: 42px;
+  padding: 0;
+}
+
+.removeOwner:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ownershipSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 10px 12px;
+}
+
+.ownershipSummary[data-valid="true"] {
+  border-color: color-mix(in srgb, var(--success) 44%, var(--line));
+}
+
+.ownershipSummary[data-valid="true"] span {
+  color: var(--success);
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;
@@ -93,6 +185,21 @@
   }
 
   .actions button {
+    width: 100%;
+  }
+
+  .ownersHeader,
+  .ownerRow {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .ownersHeader {
+    flex-direction: column;
+  }
+
+  .ownersHeader button,
+  .removeOwner {
     width: 100%;
   }
 }

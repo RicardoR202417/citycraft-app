@@ -17,6 +17,12 @@ function getField(formData, fieldName) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function getFields(formData, fieldName) {
+  return formData
+    .getAll(fieldName)
+    .map((value) => (typeof value === "string" ? value.trim() : ""));
+}
+
 function slugify(value) {
   return value
     .normalize("NFD")
@@ -52,7 +58,7 @@ function friendlyPropertyError(error) {
   }
 
   if (error.code === "23514") {
-    return "Revisa tipo, tamano, valor y propietario antes de guardar.";
+    return "Revisa tipo, areas, valor y porcentajes de propietarios antes de guardar.";
   }
 
   if (error.code === "42501") {
@@ -364,7 +370,7 @@ export async function createDistrict(_previousState = DEFAULT_STATE, formData) {
 }
 
 export async function createProperty(_previousState = DEFAULT_STATE, formData) {
-  const actorProfile = await requireGovernmentProfile("/government");
+  await requireGovernmentProfile("/government");
   const districtId = getField(formData, "district_id");
   const parentPropertyId = getField(formData, "parent_property_id");
   const name = getField(formData, "name");
@@ -372,12 +378,12 @@ export async function createProperty(_previousState = DEFAULT_STATE, formData) {
   const address = getField(formData, "address");
   const type = getField(formData, "type");
   const description = getField(formData, "description");
-  const ownerProfileId = getField(formData, "owner_profile_id");
-  const ownerOrganizationId = getField(formData, "owner_organization_id");
-  const ownerType = ownerProfileId ? "profile" : "organization";
+  const ownerTypes = getFields(formData, "owner_type");
+  const ownerProfileIds = getFields(formData, "owner_profile_id");
+  const ownerOrganizationIds = getFields(formData, "owner_organization_id");
+  const ownerPercents = getFields(formData, "ownership_percent");
   const landAreaBlocks = Number(getField(formData, "land_area_blocks"));
   const buildingAreaBlocks = Number(getField(formData, "building_area_blocks") || 0);
-  const sizeBlocks = landAreaBlocks;
   const currentValue = Number(getField(formData, "current_value"));
   const ownershipPercent = Number(getField(formData, "ownership_percent") || 100);
   const valuationReason = getField(formData, "valuation_reason") || "Valor inicial";
@@ -450,16 +456,64 @@ export async function createProperty(_previousState = DEFAULT_STATE, formData) {
     };
   }
 
-  if ((ownerProfileId && ownerOrganizationId) || (!ownerProfileId && !ownerOrganizationId)) {
+  const owners = ownerTypes.map((ownerTypeValue, index) => ({
+    organization_id: ownerTypeValue === "organization" ? ownerOrganizationIds[index] || null : null,
+    owner_type: ownerTypeValue,
+    ownership_percent: Number(ownerPercents[index] || 0),
+    profile_id: ownerTypeValue === "profile" ? ownerProfileIds[index] || null : null
+  }));
+  const ownershipTotal = owners.reduce((sum, owner) => sum + Number(owner.ownership_percent || 0), 0);
+  const sortedOwnerPercents = owners
+    .map((owner) => Number(owner.ownership_percent || 0))
+    .sort((a, b) => b - a);
+
+  if (!owners.length) {
     return {
-      error: "Selecciona un solo propietario inicial: jugador u organizacion.",
+      error: "Agrega al menos un propietario.",
       message: ""
     };
   }
 
-  if (!Number.isFinite(ownershipPercent) || ownershipPercent <= 0 || ownershipPercent > 100) {
+  for (const owner of owners) {
+    if (!["profile", "organization"].includes(owner.owner_type)) {
+      return {
+        error: "Cada propietario debe ser jugador u organizacion.",
+        message: ""
+      };
+    }
+
+    if (owner.owner_type === "profile" && !owner.profile_id) {
+      return {
+        error: "Selecciona el jugador de cada propietario jugador.",
+        message: ""
+      };
+    }
+
+    if (owner.owner_type === "organization" && !owner.organization_id) {
+      return {
+        error: "Selecciona la organizacion de cada propietario organizacion.",
+        message: ""
+      };
+    }
+
+    if (!Number.isFinite(owner.ownership_percent) || owner.ownership_percent <= 0 || owner.ownership_percent > 100) {
+      return {
+        error: "Cada porcentaje debe estar entre 0.01 y 100.",
+        message: ""
+      };
+    }
+  }
+
+  if (Math.round(ownershipTotal * 100) / 100 !== 100) {
     return {
-      error: "El porcentaje debe estar entre 0.01 y 100.",
+      error: "La suma de porcentajes debe ser exactamente 100%.",
+      message: ""
+    };
+  }
+
+  if ((sortedOwnerPercents[0] || 0) - (sortedOwnerPercents[1] || 0) < 1) {
+    return {
+      error: "Debe existir un propietario mayoritario con al menos 1 punto porcentual sobre el segundo.",
       message: ""
     };
   }
@@ -492,18 +546,16 @@ export async function createProperty(_previousState = DEFAULT_STATE, formData) {
     };
   }
 
-  const { data: createdPropertyId, error } = await supabase.rpc("create_property_with_initial_owner", {
+  const { error } = await supabase.rpc("create_property_with_owners", {
     p_address: address,
+    p_building_area_blocks: buildingAreaBlocks,
     p_current_value: currentValue,
     p_description: description || "",
     p_district_id: districtId,
+    p_land_area_blocks: landAreaBlocks,
     p_name: name,
-    p_organization_id: ownerType === "organization" ? ownerOrganizationId : null,
-    p_owner_type: ownerType,
-    p_ownership_percent: ownershipPercent,
+    p_owners: owners,
     p_parent_property_id: parentPropertyId || null,
-    p_profile_id: ownerType === "profile" ? ownerProfileId : null,
-    p_size_blocks: sizeBlocks,
     p_slug: slug,
     p_type: type,
     p_valuation_reason: valuationReason
@@ -514,25 +566,6 @@ export async function createProperty(_previousState = DEFAULT_STATE, formData) {
       error: friendlyPropertyError(error),
       message: ""
     };
-  }
-
-  if (createdPropertyId) {
-    await supabase
-      .from("properties")
-      .update({
-        land_area_blocks: landAreaBlocks
-      })
-      .eq("id", createdPropertyId);
-
-    if (buildingAreaBlocks > 0) {
-      await supabase.from("property_floors").insert({
-        area_blocks: buildingAreaBlocks,
-        created_by: actorProfile.id,
-        floor_number: 1,
-        name: "Planta 1",
-        property_id: createdPropertyId
-      });
-    }
   }
 
   revalidateGovernmentPaths();
