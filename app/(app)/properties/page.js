@@ -1,5 +1,31 @@
-import { ArrowLeft, Building2, ClipboardCheck, History, LandPlot, MapPinned, Percent } from "lucide-react";
-import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
+import {
+  ArrowLeft,
+  ClipboardCheck,
+  Eye,
+  Gavel,
+  HandCoins,
+  History,
+  LandPlot,
+  MapPinned,
+  Percent,
+  Repeat2,
+  Wrench
+} from "lucide-react";
+import {
+  Badge,
+  Card,
+  CrudActionList,
+  CrudLayout,
+  CrudPanel,
+  CrudToolbar,
+  CrudWorkspace,
+  DataList,
+  EmptyState,
+  LinkButton,
+  PageHeader,
+  SectionHeader,
+  Table
+} from "../../../components/ui";
 import {
   calculateDistrictAppreciation,
   formatAppreciationRate,
@@ -16,20 +42,44 @@ export const metadata = {
   title: "Mis propiedades - CityCraft App"
 };
 
+const PROPERTY_TYPES = [
+  ["land", "Terreno"],
+  ["residential", "Habitacional"],
+  ["commercial", "Local"],
+  ["corporate", "Corporativo"],
+  ["cultural", "Cultural"],
+  ["entertainment", "Entretenimiento"],
+  ["infrastructure", "Infraestructura"],
+  ["service", "Servicio"],
+  ["public", "Publica"]
+];
+
+const PROPERTY_STATUSES = [
+  ["planned", "Planeada"],
+  ["active", "Activa"],
+  ["under_review", "En revision"],
+  ["demolished", "Demolida"],
+  ["archived", "Archivada"]
+];
+
 function formatPropertyType(type) {
-  const labels = {
-    commercial: "Local",
-    corporate: "Corporativo",
-    cultural: "Cultural",
-    entertainment: "Entretenimiento",
-    infrastructure: "Infraestructura",
-    land: "Terreno",
-    public: "Publica",
-    residential: "Habitacional",
-    service: "Servicio"
+  return PROPERTY_TYPES.find(([value]) => value === type)?.[1] || type;
+}
+
+function formatPropertyStatus(status) {
+  return PROPERTY_STATUSES.find(([value]) => value === status)?.[1] || status;
+}
+
+function getPropertyStatusTone(status) {
+  const tones = {
+    active: "success",
+    archived: "neutral",
+    demolished: "danger",
+    planned: "info",
+    under_review: "warning"
   };
 
-  return labels[type] || type;
+  return tones[status] || "neutral";
 }
 
 function formatRequestType(type) {
@@ -69,8 +119,16 @@ function formatDate(value) {
 
   return new Intl.DateTimeFormat("es-MX", {
     dateStyle: "medium",
-    timeStyle: "short"
+    timeStyle: "short",
+    timeZone: "America/Mexico_City"
   }).format(new Date(value));
+}
+
+function formatPercent(value) {
+  return `${Number(value || 0).toLocaleString("es-MX", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2
+  })}%`;
 }
 
 function formatSignedMoney(value) {
@@ -80,7 +138,38 @@ function formatSignedMoney(value) {
   return `${sign}${formatMoney(amount)}`;
 }
 
-export default async function PropertiesPage() {
+function getParam(params, key) {
+  const value = params?.[key];
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function matchesText(property, query) {
+  if (!query) {
+    return true;
+  }
+
+  const text = [
+    property.name,
+    property.address,
+    property.districts?.name
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return text.includes(query.toLowerCase());
+}
+
+function isPubliclyVisible(property) {
+  return property.status === "active" || property.status === "planned";
+}
+
+export default async function PropertiesPage({ searchParams }) {
+  const params = await searchParams;
+  const query = getParam(params, "q");
+  const typeFilter = getParam(params, "type");
+  const districtFilter = getParam(params, "district");
+  const statusFilter = getParam(params, "status");
   const profile = await requireProfile("/properties");
   const supabase = await createSupabaseServerClient();
   const serviceSupabase = getSupabaseServiceClient();
@@ -94,24 +183,19 @@ export default async function PropertiesPage() {
         properties (
           id,
           district_id,
+          slug,
           name,
           address,
           type,
+          status,
           size_blocks,
           current_value,
-          districts (id, name)
+          districts (id, name, slug)
         )
       `
     )
     .eq("profile_id", profile.id)
     .order("acquired_at", { ascending: false });
-
-  const { data: permitRequests = [] } = await supabase
-    .from("property_permit_requests")
-    .select("id, property_id, request_type, title, status, proposed_type, proposed_size_blocks, proposed_value, government_comment, created_at, decided_at, properties(name)")
-    .eq("requested_by_profile_id", profile.id)
-    .order("created_at", { ascending: false })
-    .limit(20);
 
   const ownedProperties = ownerships.map((ownership) => ownership.properties).filter(Boolean);
   const ownedPropertyIds = ownedProperties.map((property) => property.id);
@@ -122,17 +206,12 @@ export default async function PropertiesPage() {
     { data: districtProperties = [] },
     { data: propertyOwners = [] },
     { data: appreciationHistory = [] },
-    { data: valuationHistory = [] }
+    { data: valuationHistory = [] },
+    { data: permitRequests = [] }
   ] = await Promise.all([
-    supabase
-      .from("districts")
-      .select("id, name, slug, description, base_appreciation_rate"),
-    supabase
-      .from("properties")
-      .select("id, district_id, type, status, size_blocks, current_value, created_at, updated_at"),
-    serviceSupabase
-      .from("property_owners")
-      .select("property_id, owner_type, profile_id, organization_id, ownership_percent"),
+    supabase.from("districts").select("id, name, slug, description, base_appreciation_rate").order("name"),
+    supabase.from("properties").select("id, district_id, type, status, size_blocks, current_value, created_at, updated_at"),
+    serviceSupabase.from("property_owners").select("property_id, owner_type, profile_id, organization_id, ownership_percent"),
     serviceSupabase
       .from("district_appreciation_history")
       .select("id, district_id, previous_index, new_index, change_amount, reason, factors, created_at")
@@ -146,7 +225,15 @@ export default async function PropertiesPage() {
           .in("property_id", ownedPropertyIds)
           .order("created_at", { ascending: false })
           .limit(200)
-      : { data: [] }
+      : { data: [] },
+    supabase
+      .from("property_permit_requests")
+      .select(
+        "id, property_id, request_type, title, status, proposed_type, proposed_size_blocks, proposed_value, government_comment, created_at, decided_at, properties(name)"
+      )
+      .eq("requested_by_profile_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(20)
   ]);
 
   const latestAppreciationByDistrict = new Map();
@@ -176,15 +263,37 @@ export default async function PropertiesPage() {
     ])
   );
 
+  const filteredOwnerships = ownerships.filter((ownership) => {
+    const property = ownership.properties;
+
+    if (!property) {
+      return false;
+    }
+
+    return (
+      matchesText(property, query) &&
+      (!typeFilter || property.type === typeFilter) &&
+      (!districtFilter || property.district_id === districtFilter) &&
+      (!statusFilter || property.status === statusFilter)
+    );
+  });
+
   const totalValue = ownerships.reduce((sum, ownership) => {
     const value = Number(ownership.properties?.current_value || 0);
     return sum + value * (Number(ownership.ownership_percent || 0) / 100);
   }, 0);
 
-  const rows = ownerships.map((ownership) => {
+  const filteredValue = filteredOwnerships.reduce((sum, ownership) => {
+    const value = Number(ownership.properties?.current_value || 0);
+    return sum + value * (Number(ownership.ownership_percent || 0) / 100);
+  }, 0);
+
+  const rows = filteredOwnerships.map((ownership) => {
     const property = ownership.properties || {};
     const percent = Number(ownership.ownership_percent || 0);
     const proportionalValue = Number(property.current_value || 0) * (percent / 100);
+    const isMajorityOwner = percent > 50;
+    const canOperateOwnership = percent > 0;
 
     return {
       id: ownership.id,
@@ -195,19 +304,48 @@ export default async function PropertiesPage() {
         </div>
       ),
       district: property.districts?.name || "Sin delegacion",
-      appreciation: property.district_id ? (
-        <Badge tone={getAppreciationTrendTone(districtMetricsById.get(property.district_id)?.trend)}>
-          {formatAppreciationRate(districtMetricsById.get(property.district_id)?.currentRate)}
-        </Badge>
-      ) : (
-        "Sin indice"
-      ),
       type: <Badge tone="info">{formatPropertyType(property.type)}</Badge>,
-      percent: `${percent.toLocaleString("es-MX", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      })}%`,
-      value: formatMoney(proportionalValue)
+      percent: formatPercent(percent),
+      value: formatMoney(proportionalValue),
+      visibility: (
+        <Badge tone={isPubliclyVisible(property) ? "success" : "neutral"}>
+          {isPubliclyVisible(property) ? "Visible" : "No visible"}
+        </Badge>
+      ),
+      status: <Badge tone={getPropertyStatusTone(property.status)}>{formatPropertyStatus(property.status)}</Badge>,
+      actions: (
+        <CrudActionList
+          aria-label={`Acciones para ${property.name}`}
+          actions={[
+            {
+              href: `/properties/${property.slug}`,
+              icon: Eye,
+              label: "Detalle"
+            },
+            {
+              href: `/market?property=${property.id}`,
+              icon: HandCoins,
+              label: "Vender"
+            },
+            {
+              href: `/auctions?property=${property.id}`,
+              icon: Gavel,
+              label: "Subastar"
+            },
+            {
+              href: `/properties?property_id=${property.id}#permit-request`,
+              icon: Wrench,
+              label: "Modificar"
+            },
+            {
+              disabled: !canOperateOwnership,
+              icon: Repeat2,
+              label: isMajorityOwner ? "Transferir" : "Transferir %",
+              variant: "secondary"
+            }
+          ]}
+        />
+      )
     };
   });
 
@@ -245,7 +383,7 @@ export default async function PropertiesPage() {
     decidedAt: formatDate(request.decided_at)
   }));
 
-  const valueExplanationRows = ownerships.map((ownership) => {
+  const valueExplanationRows = filteredOwnerships.map((ownership) => {
     const property = ownership.properties || {};
     const percent = Number(ownership.ownership_percent || 0);
     const propertyValuations = valuationsByProperty.get(property.id) || [];
@@ -268,7 +406,6 @@ export default async function PropertiesPage() {
           <span>{property.districts?.name || "Sin delegacion"}</span>
         </div>
       ),
-      previousValue: proportionalPrevious !== null ? formatMoney(proportionalPrevious) : "Sin valor anterior",
       currentValue: formatMoney(proportionalCurrent),
       valueChange:
         proportionalDelta !== null ? (
@@ -306,12 +443,13 @@ export default async function PropertiesPage() {
 
   const summaryItems = [
     { label: "Propiedades directas", value: ownerships.length },
-    { label: "Valor proporcional", value: formatMoney(totalValue) },
+    { label: "Resultados visibles", value: filteredOwnerships.length },
+    { label: "Valor total directo", value: formatMoney(totalValue) },
+    { label: "Valor filtrado", value: formatMoney(filteredValue) },
     {
       label: "Delegaciones",
       value: new Set(ownerships.map((ownership) => ownership.properties?.district_id).filter(Boolean)).size
-    },
-    { label: "Tipo de posesion", value: "Jugador" }
+    }
   ];
 
   const ownedDistricts = Array.from(
@@ -335,177 +473,200 @@ export default async function PropertiesPage() {
             Dashboard
           </LinkButton>
         }
-        description="Consulta propiedades donde tienes participacion directa como jugador y el valor estimado de tu porcentaje."
-        eyebrow="Perfil inmobiliario"
+        description="Busca, filtra, abre detalle y prepara acciones sobre las propiedades registradas directamente a tu nombre."
+        eyebrow="CRUD centralizado"
         title="Mis propiedades"
       />
 
-      <section className={styles.grid}>
-        <Card className={styles.card}>
-          <SectionHeader
-            description="Resumen privado de participacion directa. Las propiedades por organizacion se integraran en una fase posterior."
-            eyebrow="Resumen"
-            title="Participacion actual"
-          />
-          <DataList items={summaryItems} />
-        </Card>
-
-        <Card className={styles.card}>
-          <SectionHeader
-            description="El valor se calcula con el porcentaje que tienes sobre el valor vigente de cada propiedad."
-            eyebrow="Estimado"
-            title="Valor proporcional"
-          />
-          <div className={styles.valuePanel}>
-            <Percent size={22} />
-            <strong>{formatMoney(totalValue)}</strong>
-            <span>Valor directo acumulado</span>
-          </div>
-        </Card>
-      </section>
-
-      <Card className={styles.card}>
-        <SectionHeader
-          description="Listado de propiedades registradas directamente a tu nombre."
-          eyebrow="Registro"
-          title="Propiedades directas"
-        />
-        {ownerships.length ? (
-          <Table
-            columns={[
-              { key: "property", label: "Propiedad" },
-              { key: "district", label: "Delegacion" },
-              { key: "appreciation", label: "Plusvalia zona" },
-              { key: "type", label: "Tipo" },
-              { key: "percent", label: "Porcentaje" },
-              { key: "value", label: "Valor proporcional" }
-            ]}
-            getRowKey={(row) => row.id}
-            rows={rows}
-          />
-        ) : (
-          <EmptyState
-            action={
-              <LinkButton href="/dashboard" icon={MapPinned} variant="secondary">
-                Volver al panel
-              </LinkButton>
+      <CrudLayout>
+        <CrudToolbar
+          actions={
+            <LinkButton href="#permit-request" icon={ClipboardCheck} size="sm">
+              Solicitar modificacion
+            </LinkButton>
+          }
+          filters={[
+            {
+              defaultValue: typeFilter,
+              label: "Tipo",
+              name: "type",
+              options: [
+                { label: "Todos", value: "" },
+                ...PROPERTY_TYPES.map(([value, label]) => ({ label, value }))
+              ]
+            },
+            {
+              defaultValue: districtFilter,
+              label: "Delegacion",
+              name: "district",
+              options: [
+                { label: "Todas", value: "" },
+                ...districts.map((district) => ({ label: district.name, value: district.id }))
+              ]
+            },
+            {
+              defaultValue: statusFilter,
+              label: "Estado",
+              name: "status",
+              options: [
+                { label: "Todos", value: "" },
+                ...PROPERTY_STATUSES.map(([value, label]) => ({ label, value }))
+              ]
             }
-            description="Cuando el gobierno registre una propiedad a tu nombre, aparecera aqui con porcentaje y valor proporcional."
-            icon={LandPlot}
-            title="Aun no tienes propiedades"
-          />
-        )}
-      </Card>
-
-      <Card className={styles.card}>
-        <SectionHeader
-          description="Zonas donde tienes propiedades directas, con tendencia calculada contra la base registrada por gobierno."
-          eyebrow="Plusvalia"
-          title="Mis zonas"
+          ]}
+          searchDefaultValue={query}
+          searchPlaceholder="Buscar por nombre, direccion o delegacion"
         />
-        {ownedDistricts.length ? (
-          <div className={styles.zoneGrid}>
-            {ownedDistricts.map((district) => (
-              <article key={district.id}>
-                <MapPinned size={18} />
-                <div>
-                  <strong>{district.name}</strong>
-                  <span>{formatAppreciationRate(district.metrics?.currentRate)} indice actual</span>
+
+        <CrudWorkspace
+          sidebar={
+            <>
+              <CrudPanel title="Resumen">
+                <DataList items={summaryItems} />
+              </CrudPanel>
+              <CrudPanel title="Valor proporcional">
+                <div className={styles.valuePanel}>
+                  <Percent size={22} />
+                  <strong>{formatMoney(filteredValue)}</strong>
+                  <span>Valor directo de resultados filtrados</span>
                 </div>
-                <Badge tone={getAppreciationTrendTone(district.metrics?.trend)}>
-                  {formatAppreciationTrend(district.metrics?.trend)}
-                </Badge>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            description="Cuando tengas propiedades, tambien veras aqui la plusvalia de sus delegaciones."
-            icon={MapPinned}
-            title="Sin zonas con propiedades"
-          />
-        )}
-      </Card>
+              </CrudPanel>
+            </>
+          }
+        >
+          <CrudPanel title="Registro centralizado">
+            {filteredOwnerships.length ? (
+              <Table
+                columns={[
+                  { key: "property", label: "Propiedad" },
+                  { key: "district", label: "Delegacion" },
+                  { key: "type", label: "Tipo" },
+                  { key: "percent", label: "Mi porcentaje" },
+                  { key: "value", label: "Valor proporcional" },
+                  { key: "visibility", label: "Visibilidad" },
+                  { key: "status", label: "Estado" },
+                  { key: "actions", label: "Acciones" }
+                ]}
+                getRowKey={(row) => row.id}
+                rows={rows}
+              />
+            ) : (
+              <EmptyState
+                action={
+                  <LinkButton href="/properties" icon={LandPlot} variant="secondary">
+                    Limpiar filtros
+                  </LinkButton>
+                }
+                description="No hay propiedades que coincidan con la busqueda actual."
+                icon={LandPlot}
+                title="Sin resultados"
+              />
+            )}
+          </CrudPanel>
+        </CrudWorkspace>
 
-      <Card className={styles.card}>
-        <SectionHeader
-          description="Cruza el historial de valoraciones de tus propiedades con el ultimo snapshot de plusvalia de su delegacion."
-          eyebrow="Auditoria"
-          title="Por que cambio mi valor"
-        />
-        {valueExplanationRows.length ? (
-          <Table
-            columns={[
-              { key: "property", label: "Propiedad" },
-              { key: "previousValue", label: "Valor anterior" },
-              { key: "currentValue", label: "Valor actual" },
-              { key: "valueChange", label: "Cambio" },
-              { key: "appreciation", label: "Plusvalia zona" },
-              { key: "estimatedImpact", label: "Impacto estimado" },
-              { key: "audit", label: "Ultima valoracion" }
-            ]}
-            getRowKey={(row) => row.id}
-            rows={valueExplanationRows}
-          />
-        ) : (
-          <EmptyState
-            description="Cuando tengas propiedades y valoraciones registradas, apareceran aqui las razones de cambio."
-            icon={History}
-            title="Sin historial de valor"
-          />
-        )}
-      </Card>
+        <CrudWorkspace
+          sidebar={
+            <CrudPanel title="Mis zonas">
+              {ownedDistricts.length ? (
+                <div className={styles.zoneGrid}>
+                  {ownedDistricts.map((district) => (
+                    <article key={district.id}>
+                      <MapPinned size={18} />
+                      <div>
+                        <strong>{district.name}</strong>
+                        <span>{formatAppreciationRate(district.metrics?.currentRate)} indice actual</span>
+                      </div>
+                      <Badge tone={getAppreciationTrendTone(district.metrics?.trend)}>
+                        {formatAppreciationTrend(district.metrics?.trend)}
+                      </Badge>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  description="Cuando tengas propiedades, tambien veras aqui la plusvalia de sus delegaciones."
+                  icon={MapPinned}
+                  title="Sin zonas"
+                />
+              )}
+            </CrudPanel>
+          }
+        >
+          <CrudPanel title="Auditoria de valor">
+            <SectionHeader
+              description="Cruza historial de valoraciones con el ultimo snapshot de plusvalia de la delegacion."
+              eyebrow="Valor"
+              title="Por que cambio mi valor"
+            />
+            {valueExplanationRows.length ? (
+              <Table
+                columns={[
+                  { key: "property", label: "Propiedad" },
+                  { key: "currentValue", label: "Valor actual" },
+                  { key: "valueChange", label: "Cambio" },
+                  { key: "appreciation", label: "Plusvalia zona" },
+                  { key: "estimatedImpact", label: "Impacto estimado" },
+                  { key: "audit", label: "Ultima valoracion" }
+                ]}
+                getRowKey={(row) => row.id}
+                rows={valueExplanationRows}
+              />
+            ) : (
+              <EmptyState
+                description="Cuando tengas propiedades y valoraciones registradas, apareceran aqui las razones de cambio."
+                icon={History}
+                title="Sin historial de valor"
+              />
+            )}
+          </CrudPanel>
+        </CrudWorkspace>
 
-      <Card className={styles.card}>
-        <SectionHeader
-          description="Solicita al gobierno autorizacion para construir, modificar o demoler una propiedad directa."
-          eyebrow="Permisos"
-          title="Nueva solicitud"
-        />
-        <PermitRequestForm properties={propertyOptions} />
-      </Card>
+        <CrudWorkspace
+          sidebar={
+            <CrudPanel title="Nueva solicitud">
+              <div id="permit-request" />
+              <PermitRequestForm properties={propertyOptions} />
+            </CrudPanel>
+          }
+        >
+          <CrudPanel title="Solicitudes recientes">
+            <SectionHeader
+              description="Seguimiento de solicitudes enviadas al gobierno y su decision."
+              eyebrow="Permisos"
+              title="Historial"
+            />
+            {permitRows.length ? (
+              <Table
+                columns={[
+                  { key: "request", label: "Solicitud" },
+                  { key: "type", label: "Tipo" },
+                  { key: "status", label: "Estado" },
+                  { key: "proposed", label: "Propuesta" },
+                  { key: "comment", label: "Comentario gobierno" },
+                  { key: "createdAt", label: "Creada" },
+                  { key: "decidedAt", label: "Decision" }
+                ]}
+                getRowKey={(row) => row.id}
+                rows={permitRows}
+              />
+            ) : (
+              <EmptyState
+                description="Cuando envies solicitudes de construccion o modificacion, podras darles seguimiento aqui."
+                icon={ClipboardCheck}
+                title="Sin solicitudes"
+              />
+            )}
+          </CrudPanel>
+        </CrudWorkspace>
+      </CrudLayout>
 
-      <Card className={styles.card}>
+      <Card className={styles.noteCard}>
         <SectionHeader
-          description="Seguimiento de solicitudes enviadas al gobierno y su decision."
-          eyebrow="Permisos"
-          title="Solicitudes recientes"
-        />
-        {permitRows.length ? (
-          <Table
-            columns={[
-              { key: "request", label: "Solicitud" },
-              { key: "type", label: "Tipo" },
-              { key: "status", label: "Estado" },
-              { key: "proposed", label: "Propuesta" },
-              { key: "comment", label: "Comentario gobierno" },
-              { key: "createdAt", label: "Creada" },
-              { key: "decidedAt", label: "Decision" }
-            ]}
-            getRowKey={(row) => row.id}
-            rows={permitRows}
-          />
-        ) : (
-          <EmptyState
-            description="Cuando envies solicitudes de construccion o modificacion, podras darles seguimiento aqui."
-            icon={ClipboardCheck}
-            title="Sin solicitudes"
-          />
-        )}
-      </Card>
-
-      <Card className={styles.card}>
-        <SectionHeader
-          description="Esta vista evita mostrar informacion privada de otros propietarios. Solo aparecen tus participaciones directas."
+          description="Las propiedades de organizaciones donde participas se conectaran cuando avancemos el modulo de organizaciones."
           eyebrow="Privacidad"
           title="Alcance de esta vista"
         />
-        <div className={styles.notice}>
-          <Building2 size={18} />
-          <p>
-            Las propiedades de organizaciones donde participas se conectaran cuando avancemos el modulo de organizaciones.
-          </p>
-        </div>
       </Card>
     </main>
   );
