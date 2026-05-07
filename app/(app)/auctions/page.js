@@ -1,6 +1,7 @@
 import { ArrowLeft, BadgeDollarSign, CircleDollarSign, Gavel, HandCoins, Hourglass } from "lucide-react";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireProfile } from "../../../lib/auth";
+import { formatMexicoDateTime, formatTimeLeft } from "../../../lib/datetime";
 import { formatMoney } from "../../../lib/economy";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase/server";
 import { AuctionBidForm } from "./AuctionBidForm";
@@ -15,49 +16,11 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
-function formatDate(value) {
-  if (!value) {
-    return "Pendiente";
-  }
-
-  return new Intl.DateTimeFormat("es-MX", {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(new Date(value));
-}
-
 function formatPercent(value) {
   return `${Number(value || 0).toLocaleString("es-MX", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })}%`;
-}
-
-function formatTimeLeft(value) {
-  if (!value) {
-    return "Sin cierre";
-  }
-
-  const diffMs = new Date(value).getTime() - Date.now();
-
-  if (diffMs <= 0) {
-    return "Finalizada";
-  }
-
-  const totalMinutes = Math.ceil(diffMs / 60000);
-  const days = Math.floor(totalMinutes / 1440);
-  const hours = Math.floor((totalMinutes % 1440) / 60);
-  const minutes = totalMinutes % 60;
-
-  if (days > 0) {
-    return `${days}d ${hours}h`;
-  }
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-
-  return `${minutes}m`;
 }
 
 function formatPropertyType(type) {
@@ -363,7 +326,7 @@ export default async function AuctionsPage() {
       ends: (
         <div className={styles.timeCell}>
           <strong>{formatTimeLeft(auction.ends_at)}</strong>
-          <span>{formatDate(auction.ends_at)}</span>
+          <span>{formatMexicoDateTime(auction.ends_at)}</span>
         </div>
       ),
       bid: <AuctionBidForm auctionId={auction.id} buyerOptions={buyerOptions} minimumBid={minimumBid} />
@@ -392,11 +355,11 @@ export default async function AuctionsPage() {
       ) : (
         "Sin pujas"
       ),
-      starts: formatDate(auction.starts_at),
+      starts: formatMexicoDateTime(auction.starts_at),
       ends: (
         <div className={styles.timeCell}>
           <strong>{formatTimeLeft(auction.ends_at)}</strong>
-          <span>{formatDate(auction.ends_at)}</span>
+          <span>{formatMexicoDateTime(auction.ends_at)}</span>
         </div>
       )
     };
@@ -414,8 +377,8 @@ export default async function AuctionsPage() {
     amount: formatMoney(bid.bid_amount, bid.currency_symbol),
     status: <Badge tone={getBidStatusTone(bid.status)}>{formatBidStatus(bid.status)}</Badge>,
     auctionStatus: <Badge tone={getAuctionStatusTone(bid.auctions?.status)}>{formatAuctionStatus(bid.auctions?.status)}</Badge>,
-    ends: formatDate(bid.auctions?.ends_at),
-    date: formatDate(bid.created_at)
+    ends: formatMexicoDateTime(bid.auctions?.ends_at),
+    date: formatMexicoDateTime(bid.created_at)
   }));
 
   const activeValue = asArray(activeAuctions).reduce(

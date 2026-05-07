@@ -76,6 +76,8 @@ Los jugadores y organizaciones podran vender su porcentaje de una propiedad. Sol
 
 Las ventas aceptaran ofertas, contraofertas, rechazos y aceptaciones. Las subastas tendran duracion configurada y transferiran propiedad y dinero automaticamente al finalizar.
 
+Las fechas se guardaran internamente en UTC, pero la interfaz economica mostrara cierres, pujas y notificaciones en `America/Mexico_City` mediante los helpers compartidos de `lib/datetime.js`.
+
 ### Transferencias
 
 Se podra transferir dinero o propiedades entre jugadores y organizaciones. Las transferencias grandes pagaran comision al gobierno. Las transferencias de propiedades pagaran impuesto segun el valor transferido. El gobierno no paga impuestos ni comisiones.

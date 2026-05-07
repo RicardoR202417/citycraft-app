@@ -1,6 +1,7 @@
 import { ArrowLeft, Bell, Check, Inbox } from "lucide-react";
 import { Badge, Button, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireProfile } from "../../../lib/auth";
+import { formatMexicoDateTime } from "../../../lib/datetime";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 import { markNotificationRead } from "./actions";
 import styles from "./page.module.css";
@@ -11,17 +12,6 @@ export const metadata = {
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
-}
-
-function formatDate(value) {
-  if (!value) {
-    return "Pendiente";
-  }
-
-  return new Intl.DateTimeFormat("es-MX", {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(new Date(value));
 }
 
 function formatNotificationType(type) {
@@ -144,7 +134,7 @@ export default async function NotificationsPage() {
     ),
     recipient: formatRecipient(notification, profile),
     status: notification.read_at ? <Badge>Leida</Badge> : <Badge tone="info">Nueva</Badge>,
-    date: formatDate(notification.created_at),
+    date: formatMexicoDateTime(notification.created_at),
     action: notification.read_at ? (
       "Sin accion"
     ) : (

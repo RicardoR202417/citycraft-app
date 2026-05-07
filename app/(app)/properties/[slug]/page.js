@@ -32,6 +32,7 @@ import {
   getAppreciationTrendTone
 } from "../../../../lib/appreciation";
 import { isGlobalAdmin, isGovernmentMember, requireProfile } from "../../../../lib/auth";
+import { formatMexicoDateTime } from "../../../../lib/datetime";
 import { formatMoney } from "../../../../lib/economy";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../../lib/supabase/server";
 import { PropertyFloorForm } from "./PropertyFloorForm";
@@ -63,18 +64,6 @@ const PROPERTY_STATUSES = {
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
-}
-
-function formatDate(value) {
-  if (!value) {
-    return "Pendiente";
-  }
-
-  return new Intl.DateTimeFormat("es-MX", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "America/Mexico_City"
-  }).format(new Date(value));
 }
 
 function formatPercent(value) {
@@ -246,7 +235,7 @@ export default async function PropertyDetailPage({ params }) {
       </div>
     ),
     area: `${Number(floor.area_blocks || 0).toLocaleString("es-MX")} bloques`,
-    updatedAt: formatDate(floor.updated_at)
+    updatedAt: formatMexicoDateTime(floor.updated_at)
   }));
 
   const ownerRows = asArray(owners).map((owner) => ({
@@ -258,7 +247,7 @@ export default async function PropertyDetailPage({ params }) {
       </div>
     ),
     percent: formatPercent(owner.ownership_percent),
-    acquiredAt: formatDate(owner.acquired_at),
+    acquiredAt: formatMexicoDateTime(owner.acquired_at),
     role: canOperateOwner(owner, profile.id, adminOrganizationIds) ? (
       <Badge tone="success">Puedes operar</Badge>
     ) : (
@@ -270,7 +259,7 @@ export default async function PropertyDetailPage({ params }) {
     id: valuation.id,
     value: formatMoney(valuation.value),
     reason: valuation.reason,
-    date: formatDate(valuation.created_at)
+    date: formatMexicoDateTime(valuation.created_at)
   }));
 
   const listingRows = asArray(activeListings).map((listing) => ({
@@ -279,7 +268,7 @@ export default async function PropertyDetailPage({ params }) {
     percent: formatPercent(listing.ownership_percent),
     price: formatMoney(listing.asking_price, listing.currency_symbol),
     status: <Badge tone={listing.status === "active" ? "success" : "warning"}>{listing.status}</Badge>,
-    date: formatDate(listing.created_at)
+    date: formatMexicoDateTime(listing.created_at)
   }));
 
   const auctionRows = asArray(activeAuctions).map((auction) => ({
@@ -288,7 +277,7 @@ export default async function PropertyDetailPage({ params }) {
     percent: formatPercent(auction.ownership_percent),
     price: formatMoney(auction.starting_price, auction.currency_symbol),
     status: <Badge tone="success">{auction.status}</Badge>,
-    endsAt: formatDate(auction.ends_at)
+    endsAt: formatMexicoDateTime(auction.ends_at)
   }));
 
   const actions = [
