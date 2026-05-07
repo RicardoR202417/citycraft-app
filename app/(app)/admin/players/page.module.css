@@ -71,12 +71,31 @@
   gap: 16px;
 }
 
+.nameCell,
+.relationsBlock {
+  display: grid;
+  gap: 4px;
+}
+
+.nameCell strong,
+.nameCell span {
+  display: block;
+}
+
+.nameCell span {
+  color: var(--muted);
+}
+
 .note {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface-subtle);
   padding: 12px;
   text-transform: none;
+}
+
+.anchorTarget {
+  scroll-margin-top: 96px;
 }
 
 @media (max-width: 920px) {
