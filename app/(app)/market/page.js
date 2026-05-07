@@ -1,4 +1,5 @@
 import { ArrowLeft, BadgeDollarSign, CircleDollarSign, HandCoins, Store, Tags } from "lucide-react";
+import Link from "next/link";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireProfile } from "../../../lib/auth";
 import { formatMoney } from "../../../lib/economy";
@@ -71,6 +72,17 @@ function getListingStatusTone(status) {
   };
 
   return tones[status] || "neutral";
+}
+
+function formatAuctionStatus(status) {
+  const labels = {
+    active: "Activa",
+    cancelled: "Cancelada",
+    expired: "Expirada",
+    settled: "Liquidada"
+  };
+
+  return labels[status] || status;
 }
 
 function formatOfferStatus(status) {
@@ -156,7 +168,22 @@ function getOwnershipLabel(ownership, organizationsById) {
   return `${property?.name || "Propiedad"} (${owner})`;
 }
 
-export default async function MarketPage() {
+function matchesOpportunitySearch(opportunity, query) {
+  if (!query) {
+    return true;
+  }
+
+  const normalizedQuery = query.toLowerCase();
+
+  return [opportunity.title, opportunity.propertyName, opportunity.district, opportunity.seller, opportunity.status]
+    .filter(Boolean)
+    .some((value) => value.toLowerCase().includes(normalizedQuery));
+}
+
+export default async function MarketPage({ searchParams }) {
+  const filters = await searchParams;
+  const opportunityQuery = typeof filters?.q === "string" ? filters.q.trim() : "";
+  const opportunityType = typeof filters?.type === "string" ? filters.type : "all";
   const profile = await requireProfile("/market");
   const supabase = await createSupabaseServerClient();
   const serviceSupabase = getSupabaseServiceClient();
@@ -203,6 +230,7 @@ export default async function MarketPage() {
     { data: reservedListings = [] },
     { data: activeListings = [] },
     { data: ownListings = [] },
+    { data: activeAuctions = [] },
     { data: playerWallet },
     { data: organizationWallets = [] },
     { data: marketOffers = [] }
@@ -235,6 +263,15 @@ export default async function MarketPage() {
       )
       .order("created_at", { ascending: false })
       .limit(30),
+    serviceSupabase
+      .from("auctions")
+      .select(
+        "id, title, status, ownership_percent, starting_price, currency_symbol, ends_at, seller_owner_type, seller_profile_id, seller_organization_id, properties(name, address, type, current_value, districts(name)), profiles!auctions_seller_profile_id_fkey(gamertag, display_name), organizations!auctions_seller_organization_id_fkey(name)"
+      )
+      .eq("status", "active")
+      .gt("ends_at", new Date().toISOString())
+      .order("ends_at", { ascending: true })
+      .limit(50),
     serviceSupabase
       .from("wallets")
       .select("id, balance, currency_symbol")
@@ -305,10 +342,66 @@ export default async function MarketPage() {
     })
   ];
 
+  const saleOpportunities = asArray(activeListings).map((listing) => ({
+    actionHref: `/market#listing-${listing.id}`,
+    actionLabel: "Ofertar",
+    currencySymbol: listing.currency_symbol,
+    district: listing.properties?.districts?.name || "Sin delegacion",
+    id: `sale-${listing.id}`,
+    percent: listing.ownership_percent,
+    price: listing.asking_price,
+    propertyName: listing.properties?.name || "Propiedad no disponible",
+    seller: getSellerName(listing),
+    status: formatListingStatus(listing.status),
+    title: listing.title,
+    type: "sale"
+  }));
+  const auctionOpportunities = asArray(activeAuctions).map((auction) => ({
+    actionHref: "/auctions",
+    actionLabel: "Pujar",
+    currencySymbol: auction.currency_symbol,
+    district: auction.properties?.districts?.name || "Sin delegacion",
+    id: `auction-${auction.id}`,
+    percent: auction.ownership_percent,
+    price: auction.starting_price,
+    propertyName: auction.properties?.name || "Propiedad no disponible",
+    seller: getSellerName(auction),
+    status: formatAuctionStatus(auction.status),
+    title: auction.title,
+    type: "auction"
+  }));
+  const opportunityRows = [...saleOpportunities, ...auctionOpportunities]
+    .filter((opportunity) => opportunityType === "all" || opportunity.type === opportunityType)
+    .filter((opportunity) => matchesOpportunitySearch(opportunity, opportunityQuery))
+    .map((opportunity) => ({
+      id: opportunity.id,
+      type: (
+        <Badge tone={opportunity.type === "auction" ? "warning" : "info"}>
+          {opportunity.type === "auction" ? "Subasta" : "Venta"}
+        </Badge>
+      ),
+      listing: (
+        <div className={styles.nameCell}>
+          <strong>{opportunity.title}</strong>
+          <span>{opportunity.propertyName}</span>
+        </div>
+      ),
+      seller: opportunity.seller,
+      district: opportunity.district,
+      percent: formatPercent(opportunity.percent),
+      price: formatMoney(opportunity.price, opportunity.currencySymbol),
+      status: opportunity.status,
+      action: (
+        <Link className={styles.actionLink} href={opportunity.actionHref}>
+          {opportunity.actionLabel}
+        </Link>
+      )
+    }));
+
   const activeRows = asArray(activeListings).map((listing) => ({
     id: listing.id,
     listing: (
-      <div className={styles.nameCell}>
+      <div className={styles.nameCell} id={`listing-${listing.id}`}>
         <strong>{listing.title}</strong>
         <span>{listing.properties?.name || "Propiedad no disponible"}</span>
       </div>
@@ -407,6 +500,7 @@ export default async function MarketPage() {
   );
   const summaryItems = [
     { label: "Ventas activas", value: activeListings.length.toLocaleString("es-MX") },
+    { label: "Subastas activas", value: activeAuctions.length.toLocaleString("es-MX") },
     { label: "Valor publicado", value: formatMoney(activeValue) },
     { label: "Participaciones vendibles", value: ownershipOptions.length.toLocaleString("es-MX") },
     { label: "Tus publicaciones", value: ownListings.length.toLocaleString("es-MX") },
@@ -456,6 +550,54 @@ export default async function MarketPage() {
             description="Necesitas tener propiedades directas o administrar una organizacion propietaria para publicar una venta."
             icon={BadgeDollarSign}
             title="Sin participaciones vendibles"
+          />
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <SectionHeader
+          description="Ventas y subastas aparecen juntas para consultar oportunidades economicas sin saltar entre modulos."
+          eyebrow="Mercado unificado"
+          title="Oportunidades activas"
+        />
+        <form action="/market" className={styles.filters}>
+          <label>
+            Buscar
+            <input defaultValue={opportunityQuery} name="q" placeholder="Propiedad, delegacion, vendedor" />
+          </label>
+          <label>
+            Tipo
+            <select defaultValue={opportunityType} name="type">
+              <option value="all">Todo</option>
+              <option value="sale">Ventas</option>
+              <option value="auction">Subastas</option>
+            </select>
+          </label>
+          <button type="submit">Filtrar</button>
+          <Link className={styles.actionLink} href="/market">
+            Limpiar
+          </Link>
+        </form>
+        {opportunityRows.length ? (
+          <Table
+            columns={[
+              { key: "type", label: "Tipo" },
+              { key: "listing", label: "Oportunidad" },
+              { key: "seller", label: "Vendedor" },
+              { key: "district", label: "Delegacion" },
+              { key: "percent", label: "%" },
+              { key: "price", label: "Precio base" },
+              { key: "status", label: "Estado" },
+              { key: "action", label: "Accion" }
+            ]}
+            getRowKey={(row) => row.id}
+            rows={opportunityRows}
+          />
+        ) : (
+          <EmptyState
+            description="Ajusta los filtros o espera a que se publiquen nuevas ventas y subastas."
+            icon={Store}
+            title="Sin oportunidades visibles"
           />
         )}
       </Card>
