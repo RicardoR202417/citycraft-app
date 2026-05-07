@@ -298,9 +298,8 @@ export default async function AuctionsPage() {
 
   const activeRows = asArray(activeAuctions).map((auction) => {
     const leadingBid = leadingBidByAuctionId.get(auction.id);
-    const minimumBid = leadingBid
-      ? Number(leadingBid.bid_amount || 0) + 0.01
-      : Number(auction.starting_price || 0);
+    const currentAmount = leadingBid ? Number(leadingBid.bid_amount || 0) : Number(auction.starting_price || 0);
+    const minimumBid = currentAmount + 0.01;
 
     return {
       id: auction.id,
@@ -329,7 +328,15 @@ export default async function AuctionsPage() {
           <span>{formatMexicoDateTime(auction.ends_at)}</span>
         </div>
       ),
-      bid: <AuctionBidForm auctionId={auction.id} buyerOptions={buyerOptions} minimumBid={minimumBid} />
+      bid: (
+        <AuctionBidForm
+          auctionId={auction.id}
+          buyerOptions={buyerOptions}
+          currencySymbol={auction.currency_symbol}
+          currentAmount={currentAmount}
+          minimumBid={minimumBid}
+        />
+      )
     };
   });
 
