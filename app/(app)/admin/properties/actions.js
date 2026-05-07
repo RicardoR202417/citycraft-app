@@ -61,6 +61,18 @@ function revalidateAdminProperties() {
   revalidatePath("/organizations");
 }
 
+function friendlyDeletePropertyError(error) {
+  if (!error?.message) {
+    return "No se pudo eliminar la propiedad.";
+  }
+
+  if (error.code === "23503") {
+    return "No se puede eliminar porque tiene unidades, decomisos u otro historial protegido. Archiva la propiedad o elimina primero las dependencias permitidas.";
+  }
+
+  return "No se pudo eliminar la propiedad. Revisa dependencias e intenta nuevamente.";
+}
+
 async function validateParentProperty(serviceSupabase, propertyId, districtId, parentPropertyId) {
   if (!parentPropertyId) {
     return "";
@@ -405,5 +417,94 @@ export async function removeAdminPropertyOwner(_previousState = DEFAULT_STATE, f
   return {
     error: "",
     message: "Propietario removido."
+  };
+}
+
+export async function deleteAdminProperty(_previousState = DEFAULT_STATE, formData) {
+  const adminProfile = await requireGlobalAdminProfile("/admin/properties");
+  const propertyId = getField(formData, "property_id");
+  const confirmation = getField(formData, "confirmation");
+
+  if (!propertyId) {
+    return {
+      error: "No se encontro la propiedad a eliminar.",
+      message: ""
+    };
+  }
+
+  const serviceSupabase = getSupabaseServiceClient();
+  const { data: property } = await serviceSupabase
+    .from("properties")
+    .select("id, name, slug, address, type, status, size_blocks, current_value, parent_property_id, district_id")
+    .eq("id", propertyId)
+    .maybeSingle();
+
+  if (!property) {
+    return {
+      error: "La propiedad ya no existe.",
+      message: ""
+    };
+  }
+
+  if (confirmation !== property.name) {
+    return {
+      error: `Escribe exactamente "${property.name}" para confirmar la eliminacion.`,
+      message: ""
+    };
+  }
+
+  const [{ data: owners = [] }, { data: valuations = [] }, { data: childProperties = [] }] = await Promise.all([
+    serviceSupabase
+      .from("property_owners")
+      .select("id, owner_type, profile_id, organization_id, ownership_percent")
+      .eq("property_id", propertyId),
+    serviceSupabase
+      .from("property_valuations")
+      .select("id, value, reason, created_at")
+      .eq("property_id", propertyId)
+      .order("created_at", { ascending: false })
+      .limit(10),
+    serviceSupabase
+      .from("properties")
+      .select("id, name")
+      .eq("parent_property_id", propertyId)
+  ]);
+
+  if (childProperties.length) {
+    return {
+      error: "No se puede eliminar una propiedad matriz con unidades privativas. Reasigna o elimina primero sus unidades.",
+      message: ""
+    };
+  }
+
+  const { error } = await serviceSupabase
+    .from("properties")
+    .delete()
+    .eq("id", propertyId);
+
+  if (error) {
+    return {
+      error: friendlyDeletePropertyError(error),
+      message: ""
+    };
+  }
+
+  await serviceSupabase.from("audit_logs").insert({
+    actor_profile_id: adminProfile.id,
+    action: "admin.property_deleted",
+    entity_type: "property",
+    entity_id: propertyId,
+    metadata: {
+      property,
+      owners,
+      recent_valuations: valuations
+    }
+  });
+
+  revalidateAdminProperties();
+
+  return {
+    error: "",
+    message: `Propiedad ${property.name} eliminada.`
   };
 }

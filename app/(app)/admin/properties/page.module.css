@@ -96,6 +96,10 @@
   text-transform: none;
 }
 
+.anchorTarget {
+  scroll-margin-top: 96px;
+}
+
 @media (max-width: 980px) {
   .propertyGrid,
   .managementGrid {

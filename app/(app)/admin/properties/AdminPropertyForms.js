@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { ActionFeedback, Button } from "../../../../components/ui";
 import {
   addAdminPropertyOwner,
+  deleteAdminProperty,
   removeAdminPropertyOwner,
   updateAdminProperty,
   updateAdminPropertyOwner
@@ -232,6 +233,38 @@ export function RemovePropertyOwnerForm({ owner }) {
         {isPending ? "Removiendo" : "Remover"}
       </Button>
       <ActionFeedback state={state} />
+    </form>
+  );
+}
+
+export function DeletePropertyForm({ property }) {
+  const [state, formAction, isPending] = useActionState(deleteAdminProperty, {
+    error: "",
+    message: ""
+  });
+
+  return (
+    <form action={formAction} className={styles.dangerForm}>
+      <input name="property_id" type="hidden" value={property.id} />
+      <p>
+        Esta accion elimina la propiedad y los registros dependientes que la base de datos permita borrar en cascada. No esta
+        disponible para gobierno ni jugadores.
+      </p>
+      <label>
+        Confirmacion
+        <input
+          autoComplete="off"
+          name="confirmation"
+          placeholder={`Escribe ${property.name}`}
+          required
+        />
+      </label>
+      <ActionFeedback state={state} />
+      <div className={styles.actions}>
+        <Button disabled={isPending} icon={Trash2} size="sm" type="submit" variant="danger">
+          {isPending ? "Eliminando" : "Eliminar propiedad"}
+        </Button>
+      </div>
     </form>
   );
 }
