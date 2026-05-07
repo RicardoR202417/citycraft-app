@@ -276,8 +276,10 @@ export default async function MarketPage() {
     return {
       availablePercent,
       availablePercentLabel: formatPercent(availablePercent),
+      currentValue: Number(ownership.properties?.current_value || 0),
       id: ownership.id,
-      label: getOwnershipLabel(ownership, organizationsById)
+      label: getOwnershipLabel(ownership, organizationsById),
+      propertyName: ownership.properties?.name || "Propiedad"
     };
   });
 
