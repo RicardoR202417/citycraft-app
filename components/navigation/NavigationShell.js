@@ -1,10 +1,17 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Menu, Moon, Sun, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import styles from "./NavigationShell.module.css";
+
+const THEME_STORAGE_KEY = "citycraft-theme";
+const THEME_OPTIONS = [
+  { label: "Sistema", value: "system" },
+  { icon: Sun, label: "Claro", value: "light" },
+  { icon: Moon, label: "Oscuro", value: "dark" }
+];
 
 export function NavigationShell({ isAuthenticated, links, profileLabel }) {
   const pathname = usePathname();
@@ -119,7 +126,43 @@ function NavigationContent({
           />
         ))}
       </div>
+
+      <ThemeControl />
     </nav>
+  );
+}
+
+function ThemeControl() {
+  const [theme, setTheme] = useState(getInitialTheme);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  return (
+    <section className={styles.themeControl} suppressHydrationWarning>
+      <small>Tema</small>
+      <div className={styles.themeOptions}>
+        {THEME_OPTIONS.map((option) => {
+          const Icon = option.icon;
+          const isActive = theme === option.value;
+
+          return (
+            <button
+              aria-pressed={isActive}
+              className={isActive ? styles.themeOptionActive : ""}
+              key={option.value}
+              onClick={() => setTheme(option.value)}
+              title={option.label}
+              type="button"
+            >
+              {Icon ? <Icon aria-hidden="true" size={14} /> : null}
+              <span>{option.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -189,4 +232,28 @@ function NavigationItem({ isCollapsed, item, onNavigate, onToggleGroup, openGrou
 
 function isPathActive(pathname, href) {
   return pathname === href || (href !== "/" && pathname?.startsWith(`${href}/`));
+}
+
+function getInitialTheme() {
+  if (typeof window === "undefined") {
+    return "system";
+  }
+
+  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+  return storedTheme === "light" || storedTheme === "dark" ? storedTheme : "system";
+}
+
+function applyTheme(theme) {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  if (theme === "light" || theme === "dark") {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    return;
+  }
+
+  document.documentElement.removeAttribute("data-theme");
+  window.localStorage.removeItem(THEME_STORAGE_KEY);
 }

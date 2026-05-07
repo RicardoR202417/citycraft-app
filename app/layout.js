@@ -3,6 +3,17 @@ import "./globals.css";
 import { GlobalNavigation } from "../components/navigation/GlobalNavigation";
 import { Providers } from "./providers";
 
+const themeScript = `
+try {
+  var theme = window.localStorage.getItem("citycraft-theme");
+  if (theme === "light" || theme === "dark") {
+    document.documentElement.dataset.theme = theme;
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+  }
+} catch (error) {}
+`;
+
 export const metadata = {
   title: "CityCraft App",
   description:
@@ -12,6 +23,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <Providers>
           <GlobalNavigation />
