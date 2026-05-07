@@ -1,7 +1,7 @@
 import { ArrowLeft, Building2, HandCoins, LandPlot, WalletCards } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { Badge, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../../components/ui";
-import { requireProfile } from "../../../../lib/auth";
+import { isGlobalAdmin, requireProfile } from "../../../../lib/auth";
 import { formatMoney, formatWalletBalance } from "../../../../lib/economy";
 import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../../lib/supabase/server";
 import { MemberShareForm } from "./MemberShareForm";
@@ -71,7 +71,9 @@ export default async function OrganizationDetailPage({ params }) {
   const supabase = await createSupabaseServerClient();
   const serviceSupabase = getSupabaseServiceClient();
 
-  const { data: organization, error: organizationError } = await supabase
+  const isAdmin = await isGlobalAdmin(supabase, profile.id);
+
+  const { data: organization, error: organizationError } = await serviceSupabase
     .from("organizations")
     .select("id, name, slug, description, type, is_public, created_at")
     .eq("slug", slug)
@@ -97,11 +99,11 @@ export default async function OrganizationDetailPage({ params }) {
     throw new Error(`Could not load organization membership: ${membershipError.message}`);
   }
 
-  if (!membership) {
+  if (!membership && !isAdmin) {
     redirect("/organizations");
   }
 
-  const canManageMembers = ["owner", "admin"].includes(membership.role);
+  const canManageMembers = isAdmin || ["owner", "admin"].includes(membership?.role);
 
   const { data: wallet } = await supabase
     .from("wallets")
@@ -197,15 +199,18 @@ export default async function OrganizationDetailPage({ params }) {
     }));
 
   const participationItems = [
-    { label: "Rol", value: formatRole(membership.role) },
+    { label: "Rol", value: isAdmin && !membership ? "Admin global" : formatRole(membership?.role) },
     {
       label: "Participacion",
-      value: `${Number(membership.ownership_percent || 0).toLocaleString("es-MX", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      })}%`
+      value:
+        isAdmin && !membership
+          ? "Gestion total"
+          : `${Number(membership?.ownership_percent || 0).toLocaleString("es-MX", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}%`
     },
-    { label: "Miembro desde", value: formatDate(membership.joined_at) },
+    { label: "Miembro desde", value: isAdmin && !membership ? "Acceso administrativo" : formatDate(membership?.joined_at) },
     { label: "Visibilidad", value: organization.is_public ? "Publica" : "Privada" },
     { label: "Tipo", value: organization.type === "government" ? "Gobierno" : "Privada" }
   ];

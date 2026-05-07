@@ -1,8 +1,8 @@
-import { ArrowLeft, Building2, LandPlot } from "lucide-react";
+import { ArrowLeft, Building2, Filter, LandPlot } from "lucide-react";
 import Link from "next/link";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
-import { requireProfile } from "../../../lib/auth";
-import { createSupabaseServerClient } from "../../../lib/supabase/server";
+import { isGlobalAdmin, requireProfile } from "../../../lib/auth";
+import { createSupabaseServerClient, getSupabaseServiceClient } from "../../../lib/supabase/server";
 import { OrganizationForm } from "./OrganizationForm";
 import { OrganizationInvitationResponseForm } from "./OrganizationInvitationResponseForm";
 import styles from "./page.module.css";
@@ -27,9 +27,28 @@ function formatRole(role) {
   return labels[role] || role;
 }
 
-export default async function OrganizationsPage() {
+function includesSearchValue(entry, query) {
+  if (!query) {
+    return true;
+  }
+
+  const normalizedQuery = query.toLowerCase();
+  const organization = entry.organization || {};
+
+  return [organization.name, organization.slug, organization.type]
+    .filter(Boolean)
+    .some((value) => value.toLowerCase().includes(normalizedQuery));
+}
+
+export default async function OrganizationsPage({ searchParams }) {
+  const filters = await searchParams;
+  const query = typeof filters?.q === "string" ? filters.q.trim() : "";
+  const typeFilter = typeof filters?.type === "string" ? filters.type : "all";
+  const visibilityFilter = typeof filters?.visibility === "string" ? filters.visibility : "all";
   const profile = await requireProfile("/organizations");
   const supabase = await createSupabaseServerClient();
+  const serviceSupabase = getSupabaseServiceClient();
+  const isAdmin = await isGlobalAdmin(supabase, profile.id);
 
   const { data: memberships = [], error } = await supabase
     .from("organization_members")
@@ -53,34 +72,80 @@ export default async function OrganizationsPage() {
     throw new Error(`Could not load organization invitations: ${invitationsError.message}`);
   }
 
-  const rows = memberships.map((membership) => ({
-    id: membership.id,
+  const { data: adminOrganizations = [], error: adminOrganizationsError } = isAdmin
+    ? await serviceSupabase
+        .from("organizations")
+        .select("id, name, slug, description, type, is_public, created_at")
+        .order("type", { ascending: true })
+        .order("name", { ascending: true })
+    : { data: [] };
+
+  if (adminOrganizationsError) {
+    throw new Error(`Could not load admin organizations: ${adminOrganizationsError.message}`);
+  }
+
+  const organizationEntries = isAdmin
+    ? adminOrganizations.map((organization) => ({
+        id: organization.id,
+        joinedAt: organization.created_at,
+        organization,
+        ownershipPercent: null,
+        role: "global_admin"
+      }))
+    : memberships.map((membership) => ({
+        id: membership.id,
+        joinedAt: membership.joined_at,
+        organization: membership.organizations,
+        ownershipPercent: membership.ownership_percent,
+        role: membership.role
+      }));
+
+  const filteredOrganizationEntries = organizationEntries
+    .filter((entry) => includesSearchValue(entry, query))
+    .filter((entry) => typeFilter === "all" || entry.organization?.type === typeFilter)
+    .filter((entry) => {
+      if (visibilityFilter === "all") {
+        return true;
+      }
+
+      return visibilityFilter === "public" ? entry.organization?.is_public : !entry.organization?.is_public;
+    });
+
+  const rows = filteredOrganizationEntries.map((entry) => ({
+    id: entry.id,
     name: (
       <div className={styles.organizationName}>
-        {membership.organizations?.slug ? (
-          <Link href={`/organizations/${membership.organizations.slug}`}>
-            {membership.organizations.name || "Organizacion no disponible"}
+        {entry.organization?.slug ? (
+          <Link href={`/organizations/${entry.organization.slug}`}>
+            {entry.organization.name || "Organizacion no disponible"}
           </Link>
         ) : (
           <strong>Organizacion no disponible</strong>
         )}
-        <span>{membership.organizations?.slug || "sin-slug"}</span>
+        <span>{entry.organization?.slug || "sin-slug"}</span>
       </div>
     ),
-    role: <Badge tone={membership.role === "owner" ? "success" : "neutral"}>{formatRole(membership.role)}</Badge>,
-    ownership: `${Number(membership.ownership_percent || 0).toLocaleString("es-MX", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}%`,
-    visibility: (
-      <Badge tone={membership.organizations?.is_public ? "info" : "neutral"}>
-        {membership.organizations?.is_public ? "Publica" : "Privada"}
+    role: (
+      <Badge tone={entry.role === "owner" || entry.role === "global_admin" ? "success" : "neutral"}>
+        {entry.role === "global_admin" ? "Admin global" : formatRole(entry.role)}
       </Badge>
     ),
-    type: membership.organizations?.type === "government" ? "Gobierno" : "Privada",
-    joinedAt: formatDate(membership.joined_at),
-    detail: membership.organizations?.slug ? (
-      <Link className={styles.detailLink} href={`/organizations/${membership.organizations.slug}`}>
+    ownership:
+      entry.ownershipPercent === null
+        ? "Gestion total"
+        : `${Number(entry.ownershipPercent || 0).toLocaleString("es-MX", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          })}%`,
+    visibility: (
+      <Badge tone={entry.organization?.is_public ? "info" : "neutral"}>
+        {entry.organization?.is_public ? "Publica" : "Privada"}
+      </Badge>
+    ),
+    type: entry.organization?.type === "government" ? "Gobierno" : "Privada",
+    joinedAt: formatDate(entry.joinedAt),
+    detail: entry.organization?.slug ? (
+      <Link className={styles.detailLink} href={`/organizations/${entry.organization.slug}`}>
         Ver
       </Link>
     ) : (
@@ -140,8 +205,8 @@ export default async function OrganizationsPage() {
           <div className={styles.stats}>
             <article>
               <Building2 size={20} />
-              <strong>{memberships.length}</strong>
-              <span>Organizaciones activas</span>
+              <strong>{organizationEntries.length}</strong>
+              <span>{isAdmin ? "Organizaciones visibles" : "Organizaciones activas"}</span>
             </article>
             <article>
               <LandPlot size={20} />
@@ -183,10 +248,39 @@ export default async function OrganizationsPage() {
 
       <Card className={styles.card}>
         <SectionHeader
-          eyebrow="Mis organizaciones"
-          title="Participaciones actuales"
-          description="Listado inicial de organizaciones donde formas parte activa."
+          eyebrow="CRUD centralizado"
+          title="Organizaciones visibles"
+          description="Busca y filtra organizaciones segun tus permisos antes de abrir su detalle operativo."
         />
+        <form className={styles.filters} action="/organizations">
+          <label>
+            Buscar
+            <input defaultValue={query} name="q" placeholder="Nombre, slug o tipo" />
+          </label>
+          <label>
+            Tipo
+            <select defaultValue={typeFilter} name="type">
+              <option value="all">Todas</option>
+              <option value="private">Privadas</option>
+              <option value="government">Gobierno</option>
+            </select>
+          </label>
+          <label>
+            Visibilidad
+            <select defaultValue={visibilityFilter} name="visibility">
+              <option value="all">Todas</option>
+              <option value="public">Publicas</option>
+              <option value="private">Privadas</option>
+            </select>
+          </label>
+          <button type="submit">
+            <Filter size={16} />
+            Filtrar
+          </button>
+          <Link className={styles.detailLink} href="/organizations">
+            Limpiar
+          </Link>
+        </form>
         {rows.length ? (
           <Table
             columns={[
