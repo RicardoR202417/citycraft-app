@@ -1,4 +1,4 @@
-import { ArrowLeft, Bell, Check, Inbox } from "lucide-react";
+import { ArrowLeft, Bell, Check, Filter, Inbox } from "lucide-react";
 import { Badge, Button, Card, DataList, EmptyState, LinkButton, PageHeader, SectionHeader, Table } from "../../../components/ui";
 import { requireProfile } from "../../../lib/auth";
 import { formatMexicoDateTime } from "../../../lib/datetime";
@@ -58,12 +58,69 @@ function getNotificationTone(type, readAt) {
   return tones[type] || "info";
 }
 
+function getNotificationCategory(type) {
+  if (type?.startsWith("auction_")) {
+    return "auction";
+  }
+
+  if (type?.startsWith("market_")) {
+    return "market";
+  }
+
+  if (type?.startsWith("organization_")) {
+    return "organization";
+  }
+
+  if (type?.startsWith("government_")) {
+    return "government";
+  }
+
+  return "system";
+}
+
+function formatNotificationCategory(category) {
+  const labels = {
+    auction: "Subastas",
+    government: "Gobierno",
+    market: "Mercado",
+    organization: "Organizaciones",
+    system: "Sistema"
+  };
+
+  return labels[category] || "Sistema";
+}
+
 function formatRecipient(notification, profile) {
   if (notification.recipient_organization_id) {
     return notification.organizations?.name || "Organizacion";
   }
 
   return profile.display_name || profile.gamertag;
+}
+
+function matchesSearch(notification, query) {
+  if (!query) {
+    return true;
+  }
+
+  const normalizedQuery = query.toLowerCase();
+  const metadataText = JSON.stringify(notification.metadata || {});
+
+  return [notification.title, notification.body, metadataText, getMetadataHint(notification)]
+    .filter(Boolean)
+    .some((value) => value.toLowerCase().includes(normalizedQuery));
+}
+
+function matchesRecipient(notification, recipientFilter) {
+  if (recipientFilter === "personal") {
+    return !notification.recipient_organization_id;
+  }
+
+  if (recipientFilter === "organization") {
+    return Boolean(notification.recipient_organization_id);
+  }
+
+  return true;
 }
 
 function getMetadataHint(notification) {
@@ -86,7 +143,12 @@ function getMetadataHint(notification) {
   return "Evento del sistema";
 }
 
-export default async function NotificationsPage() {
+export default async function NotificationsPage({ searchParams }) {
+  const params = await searchParams;
+  const query = typeof params?.q === "string" ? params.q.trim() : "";
+  const categoryFilter = typeof params?.category === "string" ? params.category : "all";
+  const statusFilter = typeof params?.status === "string" ? params.status : "all";
+  const recipientFilter = typeof params?.recipient === "string" ? params.recipient : "all";
   const profile = await requireProfile("/notifications");
   const supabase = await createSupabaseServerClient();
 
@@ -108,17 +170,33 @@ export default async function NotificationsPage() {
     .order("created_at", { ascending: false })
     .limit(80);
 
+  const visibleNotifications = asArray(notifications)
+    .filter((notification) => matchesSearch(notification, query))
+    .filter((notification) => categoryFilter === "all" || getNotificationCategory(notification.type) === categoryFilter)
+    .filter((notification) => {
+      if (statusFilter === "unread") {
+        return !notification.read_at;
+      }
+
+      if (statusFilter === "read") {
+        return Boolean(notification.read_at);
+      }
+
+      return true;
+    })
+    .filter((notification) => matchesRecipient(notification, recipientFilter));
   const unreadCount = asArray(notifications).filter((notification) => !notification.read_at).length;
   const auctionCount = asArray(notifications).filter((notification) => notification.type?.startsWith("auction_")).length;
   const organizationCount = asArray(notifications).filter((notification) => notification.recipient_organization_id).length;
   const summaryItems = [
     { label: "No leidas", value: unreadCount.toLocaleString("es-MX") },
     { label: "Total visible", value: notifications.length.toLocaleString("es-MX") },
+    { label: "Filtradas", value: visibleNotifications.length.toLocaleString("es-MX") },
     { label: "Subastas", value: auctionCount.toLocaleString("es-MX") },
     { label: "Organizaciones", value: organizationCount.toLocaleString("es-MX") }
   ];
 
-  const rows = asArray(notifications).map((notification) => ({
+  const rows = visibleNotifications.map((notification) => ({
     id: notification.id,
     notification: (
       <div className={styles.notificationCell}>
@@ -128,9 +206,12 @@ export default async function NotificationsPage() {
       </div>
     ),
     type: (
-      <Badge tone={getNotificationTone(notification.type, notification.read_at)}>
-        {formatNotificationType(notification.type)}
-      </Badge>
+      <div className={styles.typeCell}>
+        <Badge tone={getNotificationTone(notification.type, notification.read_at)}>
+          {formatNotificationType(notification.type)}
+        </Badge>
+        <span>{formatNotificationCategory(getNotificationCategory(notification.type))}</span>
+      </div>
     ),
     recipient: formatRecipient(notification, profile),
     status: notification.read_at ? <Badge>Leida</Badge> : <Badge tone="info">Nueva</Badge>,
@@ -179,10 +260,47 @@ export default async function NotificationsPage() {
 
       <Card className={styles.card}>
         <SectionHeader
-          description="Las pujas nuevas y las pujas superadas ya se registran aqui. Los avisos de cierre se conectaran al proceso automatico de subastas."
+          description="Busca por texto o metadata, y filtra por categoria, estado y destinatario."
           eyebrow="Bandeja"
           title="Avisos recientes"
         />
+        <form action="/notifications" className={styles.filters}>
+          <label>
+            Buscar
+            <input defaultValue={query} name="q" placeholder="Titulo, cuerpo o monto" />
+          </label>
+          <label>
+            Tipo
+            <select defaultValue={categoryFilter} name="category">
+              <option value="all">Todos</option>
+              <option value="market">Mercado</option>
+              <option value="auction">Subastas</option>
+              <option value="government">Gobierno</option>
+              <option value="organization">Organizaciones</option>
+              <option value="system">Sistema</option>
+            </select>
+          </label>
+          <label>
+            Estado
+            <select defaultValue={statusFilter} name="status">
+              <option value="all">Todas</option>
+              <option value="unread">Nuevas</option>
+              <option value="read">Leidas</option>
+            </select>
+          </label>
+          <label>
+            Destinatario
+            <select defaultValue={recipientFilter} name="recipient">
+              <option value="all">Todos</option>
+              <option value="personal">Personal</option>
+              <option value="organization">Organizacion</option>
+            </select>
+          </label>
+          <button type="submit">
+            <Filter size={16} />
+            Filtrar
+          </button>
+        </form>
         {rows.length ? (
           <Table
             columns={[
