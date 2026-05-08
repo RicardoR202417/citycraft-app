@@ -159,6 +159,11 @@
   gap: 18px;
 }
 
+.propertySection {
+  display: grid;
+  gap: 18px;
+}
+
 .sectionIntro {
   display: flex;
   gap: 18px;
@@ -330,6 +335,69 @@
   min-height: 100%;
 }
 
+.propertyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.propertyCard {
+  display: grid;
+  min-height: 250px;
+  align-content: space-between;
+  gap: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent),
+    var(--surface);
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.propertyCard:hover {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
+}
+
+.propertyIcon {
+  display: inline-grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.propertyCard div {
+  display: grid;
+  gap: 10px;
+}
+
+.propertyCard h3 {
+  margin: 0;
+  font-size: 1.18rem;
+  line-height: 1.2;
+}
+
+.propertyCard p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.propertyCard small {
+  color: var(--accent-strong);
+  font-weight: 900;
+}
+
 .publicMap {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -383,6 +451,7 @@
   }
 
   .liveGrid,
+  .propertyGrid,
   .publicMap {
     grid-template-columns: 1fr;
   }
@@ -414,6 +483,7 @@
   .cityPanel,
   .featuredBody,
   .compactPost,
+  .propertyCard,
   .publicLink {
     padding: 16px;
   }

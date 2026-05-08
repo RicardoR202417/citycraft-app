@@ -7,12 +7,14 @@ import {
   Landmark,
   MapPinned,
   MessageSquareText,
+  ShieldCheck,
   Sparkles
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge, Card, EmptyState } from "../components/ui";
 import { getPublicConstructionFeed } from "../lib/constructions/publicFeed";
+import { formatPublicPropertyType, getPublicFeaturedProperties } from "../lib/properties/publicProperties";
 import styles from "./page.module.css";
 
 export const revalidate = 60;
@@ -50,7 +52,10 @@ function formatDate(value) {
 }
 
 export default async function Home() {
-  const feed = await getPublicConstructionFeed(1);
+  const [feed, publicProperties] = await Promise.all([
+    getPublicConstructionFeed(1),
+    getPublicFeaturedProperties(6)
+  ]);
   const featuredPost = feed.posts[0];
   const recentPosts = feed.posts.slice(1, 5);
 
@@ -184,6 +189,49 @@ export default async function Home() {
               description="Cuando existan publicaciones publicas, esta pantalla se convertira en el foro principal de visitantes con imagenes, autores y detalles."
               icon={ImageIcon}
               title="Aun no hay publicaciones publicas"
+            />
+          </Card>
+        )}
+      </section>
+
+      <section className={styles.propertySection} aria-labelledby="properties-title">
+        <div className={styles.sectionIntro}>
+          <div>
+            <p className={styles.kicker}>Ciudad visible</p>
+            <h2 id="properties-title">Propiedades publicas y destacadas</h2>
+            <p>
+              Una muestra ligera de lugares abiertos, infraestructura y espacios
+              relevantes sin exponer dueños, valores ni informacion privada.
+            </p>
+          </div>
+          <Link href="/constructions">
+            Ver foro
+            <ArrowRight size={17} />
+          </Link>
+        </div>
+
+        {publicProperties.length ? (
+          <div className={styles.propertyGrid}>
+            {publicProperties.map((property) => (
+              <Link className={styles.propertyCard} href={`/city/properties/${property.slug}`} key={property.id}>
+                <span className={styles.propertyIcon}>
+                  <ShieldCheck size={20} />
+                </span>
+                <div>
+                  <Badge tone="info">{formatPublicPropertyType(property.type)}</Badge>
+                  <h3>{property.name}</h3>
+                  <p>{property.excerpt}</p>
+                </div>
+                <small>{property.district_name}</small>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <Card className={styles.emptyCard}>
+            <EmptyState
+              description="Cuando existan propiedades publicas, culturales, de servicio o infraestructura activa, apareceran aqui."
+              icon={Building2}
+              title="Sin propiedades publicas destacadas"
             />
           </Card>
         )}
